@@ -1,0 +1,11 @@
+## IDF Component Manager Manifest File
+dependencies:
+  ## Required IDF version
+  idf:
+    version: ">=5.0.0"
+  ## u8g2 graphics library
+  nixy4/u8g2:
+    version: ">=0.1.4"
+  ## OLED SSD1306 driver (u8g2 HAL for ESP-IDF)
+  mkfrey/u8g2-hal-esp-idf:
+    git: https://github.com/mkfrey/u8g2-hal-esp-idf.git

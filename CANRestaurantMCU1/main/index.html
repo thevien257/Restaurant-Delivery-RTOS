@@ -1,0 +1,2049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1d1d1f">
+<link rel="manifest" href="manifest.json">
+<title>Robot</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:13px/1.5 system-ui,-apple-system,sans-serif;background:#f5f5f7;color:#1d1d1f;
+  display:flex;flex-direction:column;align-items:center;padding:14px;gap:11px;min-height:100vh}
+#stbar{display:flex;align-items:center;gap:8px;padding:7px 16px;background:#fff;
+  border-radius:20px;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+#stdot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0;transition:.3s}
+#stdot.on{background:#34c759}
+#stmsg{font-size:.72rem;color:#555}
+.card{background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.1);
+  width:100%;max-width:340px;padding:13px 15px}
+.card-title{font-size:.58rem;text-transform:uppercase;letter-spacing:.18em;
+  color:#aaa;margin-bottom:9px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.cnt{color:#888;font-weight:400;letter-spacing:0;font-size:.6rem}
+.sg{display:grid;grid-template-columns:24px 1fr 24px 1fr;gap:4px 9px;align-items:center}
+.sl{font-size:.62rem;color:#aaa;text-transform:uppercase;font-weight:500}
+.sv{font-family:'SF Mono',ui-monospace,monospace;font-size:.76rem;color:#1d1d1f;text-align:right;
+  background:#f5f5f7;border-radius:5px;padding:2px 7px}
+.cal-row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;
+  padding-top:8px;border-top:1px solid #f0f0f0}
+.cal-info{font-size:.6rem;color:#999;font-family:'SF Mono',monospace}
+.cal-info b{color:#1d1d1f}
+.cal-info .moving{color:#ea4335}
+.cal-info .still{color:#34c759}
+.minibtn{padding:5px 10px;font-size:.62rem;border:1px solid #ddd;border-radius:8px;
+  background:#fafafa;color:#555;cursor:pointer}
+.minibtn:active{background:#e8f0fe;color:#1a73e8;border-color:#1a73e8}
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.pitem{background:#f5f5f7;border-radius:9px;padding:8px 9px;text-align:center}
+.pl{font-size:.56rem;color:#aaa;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
+.pv{font-family:'SF Mono',monospace;font-size:.92rem;font-weight:600;color:#1d1d1f}
+.cross{display:grid;grid-template-columns:repeat(3,76px);grid-template-rows:repeat(3,76px);gap:7px}
+.btn{background:#fff;border:1.5px solid #e0e0e0;color:#555;font-size:1.6rem;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  user-select:none;-webkit-user-select:none;touch-action:none;
+  box-shadow:0 1px 5px rgba(0,0,0,.08);transition:.08s}
+.btn:active,.btn.P{background:#e8f0fe;border-color:#1a73e8;color:#1a73e8;transform:scale(.95)}
+.btn.R{background:#fce8e6;border-color:#ea4335;color:#ea4335}
+.empty{pointer-events:none}
+.saves{display:flex;gap:8px;width:100%;max-width:340px}
+.sbtn{flex:1;background:#fff;border:1.5px solid #e0e0e0;color:#444;font-size:.7rem;
+  padding:11px 6px;border-radius:11px;cursor:pointer;text-align:center;
+  box-shadow:0 1px 5px rgba(0,0,0,.08)}
+.sbtn:active{background:#e8f0fe;border-color:#1a73e8;color:#1a73e8}
+.rbrow{display:flex;gap:6px;flex-wrap:wrap}
+.rbtn{flex:1;min-width:65px;padding:9px 4px;border:1.5px solid #e0e0e0;border-radius:9px;
+  background:#fff;font-size:.66rem;color:#444;cursor:pointer;text-align:center}
+.rbtn.REC{background:#fce8e6;border-color:#ea4335;color:#c62828}
+.rbtn.GO{background:#e8f5e9;border-color:#34a853;color:#1e7e34}
+.rbtn.HOME{background:#e8f0fe;border-color:#1a73e8;color:#1557b0}
+select.rsel{width:100%;padding:7px 9px;border:1.5px solid #e0e0e0;border-radius:9px;
+  font-size:.7rem;background:#fafafa;color:#444;margin-top:7px;outline:none}
+#recinfo{font-size:.62rem;color:#aaa;text-align:center;margin-top:6px;min-height:14px}
+#wakebanner{display:none;width:100%;max-width:340px;background:#fce8e6;
+  border:1.5px solid #ea4335;border-radius:11px;padding:10px 14px;
+  font-size:.7rem;color:#c62828;text-align:center;font-weight:600}
+.dbg-hdr{display:flex;justify-content:space-between;align-items:center}
+.dbg-row{font:9.5px/1.7 'SF Mono',ui-monospace,monospace;color:#333;padding:3px 0;
+  border-bottom:1px solid #f0f0f0;white-space:pre-wrap;word-break:break-all}
+.dbg-row.W{color:#e65100}.dbg-row.E{color:#c62828}.dbg-row.G{color:#2e7d32}
+.dbg-sec{font-size:.52rem;text-transform:uppercase;letter-spacing:.12em;
+  color:#bbb;margin:6px 0 2px;font-weight:600}
+.dbg-log{font:9px/1.6 'SF Mono',ui-monospace,monospace;color:#555;
+  max-height:220px;overflow-y:auto;word-break:break-all;margin-top:4px}
+.dbg-log .W{color:#e65100}.dbg-log .E{color:#c62828}.dbg-log .G{color:#2e7d32}
+</style>
+</head>
+<body>
+
+<div id="stbar" onclick="conn()" style="cursor:pointer"><span id="stdot"></span><span id="stmsg">Tap here to connect BLE</span></div>
+<div id="wakebanner">⚠️ Tab is hidden — JS throttled! Keep this tab in foreground!</div>
+
+<!-- BMI160 + bias calibration  (Chen2012 §II-A bias compensation) -->
+<div class="card">
+  <div class="card-title">
+    BMI160 <span class="cnt" id="cnt">pkts: 0</span>
+  </div>
+  <div class="sg">
+    <span class="sl">Ax</span><span class="sv" id="iax">-- g</span>
+    <span class="sl">Gx</span><span class="sv" id="igx">-- °/s</span>
+    <span class="sl">Ay</span><span class="sv" id="iay">-- g</span>
+    <span class="sl">Gy</span><span class="sv" id="igy">-- °/s</span>
+    <span class="sl">Az</span><span class="sv" id="iaz">-- g</span>
+    <span class="sl">Gz</span><span class="sv" id="igz">-- °/s</span>
+  </div>
+  <div class="cal-row">
+    <div class="cal-info">
+      bias Gz: <b id="bgz">--</b>
+      &nbsp;<span id="motion" class="still">●&nbsp;still</span>
+    </div>
+    <button class="minibtn" onclick="calibrateNow()">Calibrate</button>
+  </div>
+</div>
+
+<!-- POSITION -->
+<div class="card">
+  <div class="card-title">Position</div>
+  <div class="pg">
+    <div class="pitem"><div class="pl">X</div><div class="pv" id="px">0</div></div>
+    <div class="pitem"><div class="pl">Y</div><div class="pv" id="py">0</div></div>
+    <div class="pitem"><div class="pl">Heading</div><div class="pv" id="phdg">0.0°</div></div>
+    <div class="pitem"><div class="pl">Dist</div><div class="pv" id="pdist">0</div></div>
+  </div>
+</div>
+
+<!-- D-PAD -->
+<div class="cross">
+  <div class="empty"></div>
+  <div class="btn" id="bF">&#8593;</div>
+  <div class="empty"></div>
+  <div class="btn" id="bL">&#8592;</div>
+  <div class="empty"></div>
+  <div class="btn" id="bR">&#8594;</div>
+  <div class="empty"></div>
+  <div class="btn" id="bB">&#8595;</div>
+  <div class="empty"></div>
+</div>
+
+<div class="saves">
+  <div class="sbtn" onclick="saveCP(0)">&#127968; Save Home</div>
+  <div class="sbtn" onclick="markHome()">&#128205; Mark Home</div>
+  <div class="sbtn" onclick="promptCP()">&#128681; Save CP&hellip;</div>
+</div>
+
+<!-- RECORDER -->
+<div class="card">
+  <div class="card-title">Route Recorder</div>
+  <div class="rbrow">
+    <button class="rbtn"      id="recBtn"  onclick="toggleRecord()">&#9899; Record</button>
+    <button class="rbtn GO"   id="repBtn"  onclick="toggleReplay()">&#9654; Replay</button>
+    <button class="rbtn HOME" id="homeBtn" onclick="returnHome()">&#8617; Return Home</button>
+    <button class="rbtn"                    onclick="deleteRoute()">&#10005; Delete</button>
+    <button class="rbtn"                    onclick="calibratePivot()" id="calBtn">&#128208; Calibrate</button>
+  </div>
+  <select class="rsel" id="routeSel" onchange="onRouteSel()"></select>
+  <div id="recinfo">Auto-tracking trip from page load</div>
+</div>
+
+<!-- DELIVERY GRAPH (multi-table routing) -->
+<div class="card" id="graphCard">
+  <div class="card-title dbg-hdr">
+    Delivery Graph
+    <span style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="minibtn" onclick="rebuildGraphUI()">&#8635; Refresh</button>
+      <button class="minibtn" id="ghToggleBtn" onclick="toggleGraphPanel()">Hide</button>
+    </span>
+  </div>
+  <div id="graphBody">
+    <div class="rbrow" style="margin-bottom:6px">
+      <button class="rbtn" onclick="recordEdge()" id="recEdgeBtn">&#9899; Record Edge</button>
+      <button class="rbtn" onclick="addNode()">&#43; Node</button>
+    </div>
+
+    <div style="font-size:.65rem;color:#666;margin:4px 0 3px">Nodes &nbsp;<span style="color:#999">(tap to change type)</span></div>
+    <div id="nodeList" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px"></div>
+
+    <div style="font-size:.65rem;color:#666;margin:4px 0 3px">Edges</div>
+    <div id="edgeList" style="font-size:.6rem;color:#555;margin-bottom:6px;max-height:70px;overflow-y:auto;background:#fafafa;border-radius:6px;padding:4px 6px"></div>
+
+    <div style="font-size:.65rem;color:#666;margin:6px 0 3px">Order: pick delivery tables</div>
+    <div id="orderSel" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px"></div>
+
+    <div class="rbrow">
+      <button class="rbtn GO"   onclick="planAndDeliver()" id="delvBtn">&#9654; Plan + Deliver</button>
+      <button class="rbtn R"    onclick="cancelDelivery()" id="cancelDelvBtn">&#10005; Cancel</button>
+    </div>
+    <div id="planInfo" style="font-size:.6rem;color:#444;margin-top:6px;white-space:pre-wrap;background:#f5f5f7;border-radius:6px;padding:5px 7px;min-height:18px">Pick tables and click Plan + Deliver</div>
+
+    <div style="margin-top:10px;border-top:1px solid #e0e0e0;padding-top:8px">
+      <div style="font-size:.65rem;color:#666;margin-bottom:5px">Customer Ordering (WiFi: <b>RestaurantGroup3</b> &rarr; 192.168.4.1/customer)</div>
+      <button class="rbtn" onclick="syncTables()" id="syncTablesBtn">&#8679; Sync Tables to Robot</button>
+      <div id="syncTablesInfo" style="font-size:.6rem;color:#888;margin-top:4px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ORDERS PANEL -->
+<div class="card" id="ordersCard">
+  <div class="card-title dbg-hdr">
+    Customer Orders
+    <span style="display:flex;gap:6px;align-items:center">
+      <span id="ordersBadge" style="background:#e53935;color:#fff;border-radius:10px;padding:1px 7px;font-size:.7rem;display:none">0</span>
+      <button class="minibtn" onclick="clearOrders()">Clear</button>
+      <button class="minibtn" id="ordersToggleBtn" onclick="toggleOrders()">Hide</button>
+    </span>
+  </div>
+  <div id="ordersBody">
+    <div id="ordersList" style="font-size:.75rem;color:#444"></div>
+    <div id="ordersEmpty" style="font-size:.7rem;color:#aaa;text-align:center;padding:10px 0">No orders yet</div>
+  </div>
+</div>
+
+<!-- DEBUG PANEL -->
+<div class="card" id="dbgCard">
+  <div class="card-title dbg-hdr">
+    Debug
+    <span style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="minibtn" onclick="clearDbgLog()">Clear</button>
+      <button class="minibtn" onclick="copyDbgAll()">Copy All</button>
+      <button class="minibtn" onclick="copyDbgLog()">Copy JSON</button>
+      <button class="minibtn" id="dbgToggleBtn" onclick="toggleDbg()">Hide</button>
+    </span>
+  </div>
+  <div id="dbgBody">
+    <div class="dbg-sec">IMU / WebSocket throughput</div>
+    <div class="dbg-row" id="dbg-gyro">—</div>
+    <div class="dbg-sec">Main-thread blocking</div>
+    <div class="dbg-row" id="dbg-block">—</div>
+    <div class="dbg-sec">Recent gaps ≥400ms (most recent first)</div>
+    <div class="dbg-row" id="dbg-gaps">—</div>
+    <div class="dbg-sec">setInterval jitter</div>
+    <div class="dbg-row" id="dbg-timer">—</div>
+    <div class="dbg-sec">Calibration</div>
+    <div class="dbg-row" id="dbg-cal">—</div>
+    <div class="dbg-sec">Replay segment timing</div>
+    <div class="dbg-row" id="dbg-replay">—</div>
+    <div class="dbg-sec" style="background:#4a1010;color:#faa">⛔ Obstacle / Emergency-stop log (newest first)</div>
+    <div class="dbg-row" id="dbg-obstacle" style="font-family:monospace;font-size:.72rem;white-space:pre-wrap">—</div>
+    <div class="dbg-sec">Event log (newest first)</div>
+    <div class="dbg-log" id="dbg-log">—</div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   CHEN 2012 INSPIRED IMU NAVIGATION FOR INDOOR WHEELED ROBOT
+   ───────────────────────────────────────────────────────────────────────
+   Key ideas applied (paper §II-A, §III-B):
+     • Gyro bias estimation by stationary averaging (Levenberg-Marquardt
+       in paper; we use a simpler running-mean while stationary, which
+       fits a flat normal distribution after bias removal)
+     • Indoor flat-floor constraints:
+         vz = 0, pz = 0           (no vertical motion)
+         roll = 0, pitch = 0       (only yaw changes)
+       ⇒ only Gz feeds heading; Gx/Gy are ignored for navigation
+     • ZUPT (zero-velocity update): when |a|≈1g for >2s and no command
+       active, refresh gyro bias estimate
+     • Replay is purely time-based: motors run at constant CRAWL speed
+       so duration alone determines distance and angle
+═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Sensor state ───────────────────────────────────────────────────── */
+var imu = { ax:0, ay:0, az:0, gx:0, gy:0, gz:0 }; /* 0.01g, 0.1°/s */
+var imuPkts = 0;
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DEBUG INSTRUMENTATION
+   Tracks: gyro packet intervals, setInterval jitter, driveFor setTimeout
+   lag, calibration sample-by-sample data, timestamped event log.
+   All data exposed via refreshDebug() (called every 500ms) and copyDbgLog().
+═══════════════════════════════════════════════════════════════════════ */
+var dbg = {
+  t0: Date.now(),
+  /* gyro packet arrival timing */
+  gyroPktTs: 0, gyroIntervals: [], gyroPktCount: 0,
+  gyroRateTs: Date.now(), gyroRateCount: 0, gyroRate: 0,
+  /* accel packet arrival timing (separate — helps isolate which type drops) */
+  accelPktTs: 0, accelIntervals: [], accelPktCount: 0,
+  accelRateTs: Date.now(), accelRateCount: 0, accelRate: 0,
+  /* ANY WS message arrival (regardless of type) — isolates WS-layer drops */
+  wsPktTs: 0, wsIntervals: [], wsPktCount: 0,
+  /* setInterval actual firing interval */
+  timerFireTs: 0, timerIntervals: [],
+  /* main-thread blocking detector (long-task watchdog) */
+  watchdogPrevTs: Date.now(), maxBlockMs: 0, blockEvents: 0,
+  /* gyro gap log: every gap >300ms recorded with full context */
+  gapLog: [],              /* [{ts, gapMs, type, sinceLastMove}] */
+  /* histogram of gyro intervals */
+  gyroHist: { '<100':0, '100-200':0, '200-300':0, '300-500':0, '500-1000':0, '>=1000':0 },
+  /* calibration per-packet log */
+  calSamples: [],          /* [{gz_raw, dt_ms, acc}] raw numbers */
+  calResult: null,         /* filled on completion */
+  /* replay segment timing */
+  replayLog: [],           /* [{dir, cmdMs, actualMs, lag}] */
+  /* obstacle / emergency-stop log */
+  obstacleLog: [],         /* [{ts, event, replayI, segs, pendingCb, wdg, seq}] */
+  /* event log */
+  events: [],              /* [{ts, tag, detail, cls}] */
+  /* BLE TX log — every write recorded for ordering analysis */
+  txSeq: 0,
+  txLog: [],               /* [{ts, seq, cmd, ms, ok, err}] */
+  hidden: false,
+  lastMoveTs: 0            /* last time a move/stop command was sent */
+};
+function dbgRolling(arr, val, max) { arr.push(val); if (arr.length > max) arr.shift(); }
+function dbgArrStats(arr) {
+  if (!arr.length) return { min:0, max:0, avg:0, last:0, n:0 };
+  var s=0, mn=arr[0], mx=arr[0];
+  for (var i=0;i<arr.length;i++) { s+=arr[i]; if(arr[i]<mn)mn=arr[i]; if(arr[i]>mx)mx=arr[i]; }
+  return { min:mn, max:mx, avg:s/arr.length, last:arr[arr.length-1], n:arr.length };
+}
+function dbgEvent(tag, detail, cls) {
+  var ts = '+' + ((Date.now() - dbg.t0) / 1000).toFixed(3) + 's';
+  dbg.events.push({ ts:ts, tag:tag, detail:detail||'', cls:cls||'' });
+  if (dbg.events.length > 100) dbg.events.shift();
+}
+function dbgHistAdd(ms) {
+  if (ms < 100) dbg.gyroHist['<100']++;
+  else if (ms < 200) dbg.gyroHist['100-200']++;
+  else if (ms < 300) dbg.gyroHist['200-300']++;
+  else if (ms < 500) dbg.gyroHist['300-500']++;
+  else if (ms < 1000) dbg.gyroHist['500-1000']++;
+  else dbg.gyroHist['>=1000']++;
+}
+function dbgLogGap(gapMs, type) {
+  var sinceMove = dbg.lastMoveTs ? (Date.now() - dbg.lastMoveTs) : -1;
+  dbg.gapLog.push({
+    ts: '+' + ((Date.now() - dbg.t0) / 1000).toFixed(2) + 's',
+    gapMs: gapMs,
+    type: type,
+    sinceLastMove: sinceMove
+  });
+  if (dbg.gapLog.length > 30) dbg.gapLog.shift();
+  dbgEvent('GAP', type+' '+gapMs+'ms (last move '+(sinceMove<0?'—':sinceMove+'ms ago')+')', 'W');
+}
+/* Main-thread block detector: a 100ms self-rescheduling watchdog.
+   If it fires later than 200ms, the JS event loop was blocked. */
+(function startBlockWatchdog() {
+  function tick() {
+    var now = Date.now();
+    var late = now - dbg.watchdogPrevTs - 100;
+    if (late > 100) {  /* >100ms late = >200ms total = clear blocking */
+      if (late > dbg.maxBlockMs) dbg.maxBlockMs = late;
+      dbg.blockEvents++;
+      dbgEvent('BLOCK', 'main thread paused +'+late+'ms', 'W');
+    }
+    dbg.watchdogPrevTs = now;
+    setTimeout(tick, 100);
+  }
+  setTimeout(tick, 100);
+})();
+
+/* ── Gyro bias (in raw units 0.1°/s, same as imu.gx/gy/gz) ──────────── */
+var bias = { gx:0, gy:0, gz:0, samples:0 };
+function loadBias() {
+  try {
+    var b = JSON.parse(localStorage.getItem('gbias') || 'null');
+    if (b) { bias.gx=b.gx||0; bias.gy=b.gy||0; bias.gz=b.gz||0; bias.samples=b.samples||0; }
+  } catch(e) {}
+  setText('bgz', (bias.gz/10).toFixed(2)+'°/s');
+}
+function saveBias() {
+  localStorage.setItem('gbias', JSON.stringify(bias));
+  setText('bgz', (bias.gz/10).toFixed(2)+'°/s');
+}
+
+/* ── Stationary detection (Chen2012: ZUPT trigger) ──────────────────── */
+var stillSinceTs = Date.now();
+var movingNow    = false;
+function isStationary() {
+  /* moveDir >= 0 means move is active (rAF loop running) */
+  if (moveDir >= 0 || replaying) return false;
+  var ax = imu.ax/100, ay = imu.ay/100, az = imu.az/100;
+  var mag = Math.sqrt(ax*ax + ay*ay + az*az);
+  /* gyro magnitude w/ bias removed should be tiny */
+  var gx = (imu.gx - bias.gx)/10;
+  var gy = (imu.gy - bias.gy)/10;
+  var gz = (imu.gz - bias.gz)/10;
+  var gmag = Math.sqrt(gx*gx + gy*gy + gz*gz);
+  return Math.abs(mag - 1.0) < 0.06 && gmag < 4.0;
+}
+
+/* ── Running-mean bias estimator while stationary ───────────────────── */
+function updateBiasIfStill() {
+  if (!isStationary()) {
+    movingNow = true;
+    setText('motion', '● moving'); document.getElementById('motion').className = 'moving';
+    stillSinceTs = Date.now();
+    return;
+  }
+  if (movingNow) { movingNow = false; stillSinceTs = Date.now(); }
+  setText('motion', '● still'); document.getElementById('motion').className = 'still';
+  /* exponential moving average — stronger weight when sample count low */
+  var stillMs = Date.now() - stillSinceTs;
+  if (stillMs < 500) return; /* settle before sampling */
+  var alpha = bias.samples < 50 ? 0.05 : 0.005;
+  bias.gx = bias.gx*(1-alpha) + imu.gx*alpha;
+  bias.gy = bias.gy*(1-alpha) + imu.gy*alpha;
+  bias.gz = bias.gz*(1-alpha) + imu.gz*alpha;
+  bias.samples++;
+  if ((bias.samples % 10) === 0) saveBias();
+}
+
+/* ── User-triggered calibration: hold still and click ───────────────── */
+function calibrateNow() {
+  if (!isStationary()) { setSt('Hold still then tap Calibrate'); return; }
+  bias.gx = imu.gx; bias.gy = imu.gy; bias.gz = imu.gz;
+  bias.samples = 1; saveBias();
+  setSt('Calibrated — bias Gz='+(bias.gz/10).toFixed(2)+'°/s');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Heading integration (Chen2012 attitude constraint: yaw only)
+═══════════════════════════════════════════════════════════════════════ */
+var heading     = 0;         /* degrees, PRIMARY source: time-based odometry */
+var gyroHeading = 0;         /* degrees, secondary: gyro-only (cross-check) */
+var lastGzTs = 0;
+
+/* ── Auto-calibration state ─────────────────────────────────────── */
+var cal = null;   /* { t0, accumDeg, keepAlive, watchdog } | null */
+
+function calibratePivot() {
+  if (cal) {
+    /* Second tap = cancel */
+    dbgEvent('calCancel', 'acc='+cal.accumDeg.toFixed(1)+'° pkts='+dbg.calSamples.length, 'E');
+    cancelAnimationFrame(cal.keepAlive);
+    clearTimeout(cal.watchdog);
+    send({cmd:'stop'});
+    cal = null;
+    setSt('Calibration cancelled');
+    document.getElementById('calBtn').textContent = '📐 Calibrate';
+    return;
+  }
+  if (replaying || recording) { setSt('Stop current operation first'); return; }
+  /* Start a RIGHT pivot.  integrateHeading() will accumulate cal.accumDeg
+     each time a fresh gyro packet arrives (every ~200ms).  No deadband so
+     every bit of rotation is counted. */
+  dbg.calSamples = [];
+  dbgEvent('calStart', 'RIGHT pivot  pivotDpm=' + PIVOT_DEG_PER_MS.toFixed(4));
+  cal = { t0: Date.now(), accumDeg: 0 };
+  /* Use rAF for keep-alive — setInterval is throttled to ~1Hz when browser is idle */
+  var calLastSendTs = Date.now();
+  function calRaf() {
+    if (!cal) return;   /* completed or cancelled */
+    var now = Date.now();
+    if (now - calLastSendTs >= INTERVAL) {
+      send({cmd:'move', dir:3, steps:STEPS});
+      calLastSendTs = now;
+    }
+    cal.keepAlive = requestAnimationFrame(calRaf);
+  }
+  cal.keepAlive = requestAnimationFrame(calRaf);
+  cal.watchdog  = setTimeout(function() {
+    if (!cal) return;
+    cancelAnimationFrame(cal.keepAlive);
+    send({cmd:'stop'});
+    dbgEvent('calTimeout', 'acc='+cal.accumDeg.toFixed(1)+'° pkts='+dbg.calSamples.length, 'E');
+    setSt('Calibration timed out (' + cal.accumDeg.toFixed(0) + '°). Is the IMU connected?');
+    cal = null;
+    document.getElementById('calBtn').textContent = '📐 Calibrate';
+  }, 30000);
+  send({cmd:'move', dir:3, steps:STEPS});
+  document.getElementById('calBtn').textContent = '⏹ Stop Cal';
+  setSt('Calibrating… turning RIGHT (auto-stops at 360°)');
+}
+
+function integrateHeading() {
+  var now = Date.now();
+
+  /* ── DEBUG: track gyro packet arrival interval ── */
+  if (dbg.gyroPktTs > 0) {
+    var _gap = now - dbg.gyroPktTs;
+    dbgRolling(dbg.gyroIntervals, _gap, 60);
+    dbgHistAdd(_gap);
+    if (_gap >= 400) dbgLogGap(_gap, 'gyro');
+  }
+  dbg.gyroPktTs = now;
+  dbg.gyroPktCount++;
+  if (now - dbg.gyroRateTs >= 2000) {
+    dbg.gyroRate = dbg.gyroRateCount / ((now - dbg.gyroRateTs) / 1000);
+    dbg.gyroRateCount = 0; dbg.gyroRateTs = now;
+  }
+  dbg.gyroRateCount++;
+
+  if (lastGzTs > 0) {
+    var dt = (now - lastGzTs) / 1000.0;
+    if (dt < 2.0) {
+      var gz_raw = (imu.gz - bias.gz) / 10.0;   /* °/s */
+
+      /* ── Auto-calibration path: no deadband, accumulate absolute rotation */
+      if (cal) {
+        /* DEBUG: log each gyro sample arriving during calibration */
+        dbg.calSamples.push({ gz_raw: gz_raw, dt_ms: dt * 1000, acc: cal.accumDeg });
+        if (dt > 0.35) dbgEvent('cal-GAP', 'dt='+(dt*1000).toFixed(0)+'ms gz='+gz_raw.toFixed(1)+'°/s — may cause cal error!', 'W');
+
+        cal.accumDeg += Math.abs(gz_raw) * dt;
+        setText('phdg', 'CAL: ' + cal.accumDeg.toFixed(0) + '°  dt=' + (dt*1000).toFixed(0) + 'ms  gz=' + gz_raw.toFixed(1));
+        if (cal.accumDeg >= 358) {
+          /* 360° complete — compute and save */
+          cancelAnimationFrame(cal.keepAlive);
+          clearTimeout(cal.watchdog);
+          send({cmd:'stop'});
+          var elapsed  = now - cal.t0;
+          var _nPkts   = dbg.calSamples.length;
+          var _sumGz   = dbg.calSamples.reduce(function(s,x){ return s + Math.abs(x.gz_raw); }, 0);
+          var _avgGz   = _nPkts ? (_sumGz / _nPkts).toFixed(1) : 'n/a';
+          var _accumFinal = cal.accumDeg;
+          dbg.calResult = {
+            elapsed: elapsed,
+            accumDeg: _accumFinal.toFixed(1),
+            nPkts: _nPkts,
+            avgGzRaw: _avgGz,
+            pivotDpm: (360 / elapsed).toFixed(5),
+            samples: dbg.calSamples.map(function(s) {
+              return { gz_raw: s.gz_raw.toFixed(2), dt_ms: s.dt_ms.toFixed(1), acc: s.acc.toFixed(1) };
+            })
+          };
+          dbgEvent('calDone', 'elapsed='+elapsed+'ms acc='+_accumFinal.toFixed(1)+'° pkts='+_nPkts+' avgGz='+_avgGz+'°/s', 'G');
+          cal = null;
+          PIVOT_DEG_PER_MS = 360 / elapsed;
+          localStorage.setItem('pivotDpm', String(PIVOT_DEG_PER_MS));
+          document.getElementById('calBtn').textContent = '📐 Calibrate';
+          setSt('✓ Calibrated: 360° in ' + elapsed + 'ms  →  ' +
+                PIVOT_DEG_PER_MS.toFixed(4) + ' °/ms  (' +
+                (1000 / PIVOT_DEG_PER_MS).toFixed(0) + 'ms per 90°)');
+          lastGzTs = now;
+          return;
+        }
+      }
+
+      /* ── Normal heading integration (cross-check display only) */
+      var gz = gz_raw;
+      if (Math.abs(gz) < 0.5) gz = 0;
+      gyroHeading += gz * dt;
+      gyroHeading = ((gyroHeading % 360) + 360) % 360;
+    }
+  }
+  lastGzTs = now;
+  if (!cal) {
+    var div = shortAngle(gyroHeading - heading);
+    setText('phdg', heading.toFixed(1) + '° (g' + (div >= 0 ? '+' : '') + div.toFixed(0) + ')');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BLE  (Web Bluetooth — Nordic UART Service)
+   ───────────────────────────────────────────────────────────────────────
+   Open this file from  file://  in Chrome on Android (secure context).
+   Alternatively enable:  chrome://flags/#unsafely-treat-insecure-origin-as-secure
+   and add  http://192.168.4.1  to allow Web Bluetooth from the ESP32 page.
+═══════════════════════════════════════════════════════════════════════ */
+const NUS_SVC = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const NUS_RX  = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';  /* phone → robot (Write) */
+const NUS_TX  = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';  /* robot → phone (Notify) */
+
+var ok = false, cmdChar = null, bleDevice = null;
+
+/* Called by the status-bar tap or programmatically for reconnect */
+async function conn() {
+  if (!navigator.bluetooth) {
+    setSt('Web Bluetooth not supported — use Chrome on Android/Desktop');
+    return;
+  }
+  try {
+    setSt('Scanning for RobotControl…');
+    bleDevice = await navigator.bluetooth.requestDevice({
+      filters: [{ name: 'RobotControl' }],
+      optionalServices: [NUS_SVC]
+    });
+    bleDevice.addEventListener('gattserverdisconnected', onBleDisconnect);
+    await doConnect();
+  } catch(e) {
+    setSt('Scan cancelled');
+    dbgEvent('ble', 'scan error: ' + e.message, 'E');
+  }
+}
+
+async function doConnect() {
+  try {
+    const server  = await bleDevice.gatt.connect();
+    const svc     = await server.getPrimaryService(NUS_SVC);
+    cmdChar       = await svc.getCharacteristic(NUS_RX);
+    const telChar = await svc.getCharacteristic(NUS_TX);
+    await telChar.startNotifications();
+    telChar.addEventListener('characteristicvaluechanged', onBleNotify);
+    ok = true;
+    document.getElementById('stdot').className = 'on';
+    setSt('Connected via BLE');
+    dbgEvent('ble', 'connected', 'G');
+    /* Resend move if button still held during reconnect */
+    if (moveDir >= 0) {
+      send({ cmd: 'move', dir: moveDir, steps: STEPS });
+      moveLastSendTs = Date.now();
+      dbgEvent('ble', 'reconnect-resend dir=' + ['FWD','BWD','LEFT','RIGHT'][moveDir], 'G');
+    }
+  } catch(e) {
+    ok = false;
+    setSt('BLE connect failed — tap to retry');
+    dbgEvent('ble', 'connect error: ' + e.message, 'E');
+  }
+}
+
+function onBleDisconnect() {
+  var wasOK = ok;
+  ok = false;
+  cmdChar = null;
+  document.getElementById('stdot').className = '';
+  setSt('\u26a0 BLE DISCONNECTED — auto-reconnecting\u2026');
+  dbgEvent('ble', 'DISCONNECTED wasOK='+wasOK+' replaying='+replaying+' delivery='+(!!_delivery), 'E');
+  /* Auto-reconnect \u2014 known device does not require a new user gesture */
+  setTimeout(function() {
+    if (bleDevice) {
+      dbgEvent('ble', 'auto-reconnect attempt', 'W');
+      doConnect();
+    }
+  }, 500);
+}
+
+function onBleNotify(event) {
+  /* DEBUG: notification inter-arrival */
+  var _now0 = Date.now();
+  if (dbg.wsPktTs > 0) {
+    var _gap = _now0 - dbg.wsPktTs;
+    dbgRolling(dbg.wsIntervals, _gap, 60);
+    if (_gap >= 400) dbgLogGap(_gap, 'BLE-any');
+  }
+  dbg.wsPktTs = _now0; dbg.wsPktCount++;
+
+  var d;
+  try { d = JSON.parse(new TextDecoder().decode(event.target.value)); }
+  catch(x) { dbgEvent('ble-parse-err', '', 'E'); return; }
+
+  if (d.type === 'accel') {
+    if (dbg.accelPktTs > 0) {
+      var _ag = _now0 - dbg.accelPktTs;
+      dbgRolling(dbg.accelIntervals, _ag, 60);
+      if (_ag >= 400) dbgLogGap(_ag, 'accel');
+    }
+    dbg.accelPktTs = _now0; dbg.accelPktCount++;
+    if (_now0 - dbg.accelRateTs >= 2000) {
+      dbg.accelRate = dbg.accelRateCount / ((_now0 - dbg.accelRateTs) / 1000);
+      dbg.accelRateCount = 0; dbg.accelRateTs = _now0;
+    }
+    dbg.accelRateCount++;
+    imu.ax=d.ax; imu.ay=d.ay; imu.az=d.az;
+    setText('iax', (d.ax/100).toFixed(3)+' g');
+    setText('iay', (d.ay/100).toFixed(3)+' g');
+    setText('iaz', (d.az/100).toFixed(3)+' g');
+    imuPkts++; setText('cnt', 'pkts: '+imuPkts);
+    updateBiasIfStill();
+  } else if (d.type === 'gyro') {
+    imu.gx=d.gx; imu.gy=d.gy; imu.gz=d.gz;
+    setText('igx', ((d.gx-bias.gx)/10).toFixed(1)+' °/s');
+    setText('igy', ((d.gy-bias.gy)/10).toFixed(1)+' °/s');
+    setText('igz', ((d.gz-bias.gz)/10).toFixed(1)+' °/s');
+    imuPkts++; setText('cnt', 'pkts: '+imuPkts);
+    integrateHeading();
+    updateBiasIfStill();
+  } else if (d.type === 'ack') {
+    dbgEvent('ack', 'cp='+d.cp_id+' result='+d.result, d.result===0?'G':'E');
+    onAckCP(d.cp_id, d.result);
+  } else if (d.type === 'odo') {
+    onOdometry(d.dir, d.s1, d.s2);
+  } else if (d.type === 'obstacle') {
+    onObstacle();
+  } else if (d.type === 'path_clear') {
+    onPathClear();
+  } else if (d.type === 'order') {
+    onOrder(d);
+  } else {
+    dbgEvent('ble-unknown', JSON.stringify(d).substring(0,60));
+  }
+}
+
+function setSt(t)      { document.getElementById('stmsg').textContent = t; }
+function setText(id,t) { document.getElementById(id).textContent = t; }
+function send(o) {
+  if (!cmdChar || !ok) {
+    dbgEvent('tx-DROP', 'no BLE: cmdChar='+(!!cmdChar)+' ok='+ok+' '+JSON.stringify(o), 'E');
+    setSt('⚠ TX-DROP (BLE down): '+JSON.stringify(o));
+    return;
+  }
+  var seq = ++dbg.txSeq;
+  var t0 = Date.now();
+  var entry = { ts:'+'+((t0-dbg.t0)/1000).toFixed(3)+'s', seq:seq, cmd:JSON.stringify(o), ms:0, ok:null, err:null };
+  dbg.txLog.push(entry);
+  if (dbg.txLog.length > 60) dbg.txLog.shift();
+  /* Always log every send to event log so we can correlate with MCU2 [CAN] prints. */
+  dbgEvent('tx', '#'+seq+' '+entry.cmd, 'G');
+  cmdChar.writeValueWithoutResponse(new TextEncoder().encode(JSON.stringify(o)))
+    .then(function() {
+      entry.ms = Date.now() - t0;
+      entry.ok = true;
+      if (entry.ms > 100) dbgEvent('tx-SLOW', '#'+seq+' '+entry.cmd+' took '+entry.ms+'ms', 'W');
+    })
+    .catch(function(e) {
+      entry.ms = Date.now() - t0;
+      entry.ok = false;
+      entry.err = String(e && e.message || e).substring(0,60);
+      dbgEvent('tx-FAIL', '#'+seq+' '+entry.cmd+' err='+entry.err, 'E');
+      setSt('⚠ TX-FAIL #'+seq+': '+entry.err);
+      console.warn('BLE write:', e);
+    });
+  if (o.cmd==='move'||o.cmd==='stop') dbg.lastMoveTs = Date.now();
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TIME-BASED DEAD-RECKONING
+   ──────────────────────────────────────────────────────────────────────
+   WHY TIME-BASED:
+   MCU2's stepper task NEVER clears g_navSteps after a burst — it loops
+   and re-runs immediately. Motors therefore run continuously at CRAWL
+   speed (125 steps/sec) from the moment a non-zero command arrives until
+   a stop command (steps=0) arrives. Step count in the command is
+   irrelevant; ONLY DURATION matters.
+
+   Robot constants (at CRAWL = 4000 µs/half-period):
+     CRAWL_STEPS_PER_MS = 0.125  (125 steps/sec)
+     PIVOT_DEG_PER_MS   = user-calibrated (deg/ms during a pivot)
+
+   Coordinate frame: Y+ = forward at heading=0 (compass / North-up).
+     posX = east  (increases when heading=90° FWD)
+     posY = north (increases when heading=0° FWD)
+   Heading convention: clockwise positive (compass bearing, deg).
+     heading=0   → facing north (+Y)
+     heading=90  → facing east  (+X)
+     dir=2 LEFT  → heading DECREASES (CCW)
+     dir=3 RIGHT → heading INCREASES (CW)
+═══════════════════════════════════════════════════════════════════════ */
+var posX = 0, posY = 0;
+var CRAWL_STEPS_PER_MS = 0.125;  /* exact from CRAWL=4000µs/half-step */
+var PIVOT_DEG_PER_MS   = parseFloat(localStorage.getItem('pivotDpm') || '0.09');
+
+/* Update odometry for `ms` milliseconds of motion in direction `dir`. */
+function applyTime(dir, ms) {
+  if (ms <= 0) return;
+  if (dir === 0) {           /* FWD */
+    var dist = CRAWL_STEPS_PER_MS * ms;
+    var rad  = heading * Math.PI / 180;
+    posX += dist * Math.sin(rad);
+    posY += dist * Math.cos(rad);
+  } else if (dir === 1) {   /* BWD */
+    var dist = CRAWL_STEPS_PER_MS * ms;
+    var rad  = heading * Math.PI / 180;
+    posX -= dist * Math.sin(rad);
+    posY -= dist * Math.cos(rad);
+  } else if (dir === 2) {   /* LEFT — CCW → heading decreases */
+    heading = ((heading - PIVOT_DEG_PER_MS * ms) % 360 + 360) % 360;
+  } else if (dir === 3) {   /* RIGHT — CW → heading increases */
+    heading = ((heading + PIVOT_DEG_PER_MS * ms) % 360 + 360) % 360;
+  }
+  setText('px',    posX.toFixed(0));
+  setText('py',    posY.toFixed(0));
+  setText('pdist', Math.sqrt(posX*posX + posY*posY).toFixed(0));
+  setText('phdg',  heading.toFixed(1) + '°');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Segment recording — time-based
+   Segment: { dir:0-3, dur:ms }
+   Duration is the PRIMARY field; everything else is for display/debug.
+═══════════════════════════════════════════════════════════════════════ */
+function shortAngle(a) { return ((a + 540) % 360) - 180; }
+
+var tripLog = [];
+var tSeg    = { dir:-1 };
+var recording  = false;
+var currentRec = [];
+var rSeg       = { dir:-1 };
+var pendingOdoSeg = -1;   /* tripLog index awaiting hardware step-count update */
+var pendingOdoCb  = null; /* callback(steps) waiting for odo ACK during step-count replay */
+var pendingOdoDir = -1;   /* dir expected by pendingOdoCb; odo with different dir is discarded */
+var pendingOdoSeq = 0;    /* monotonic token; stale odo closures self-discard on mismatch */
+
+/* ─── Obstacle / emergency-stop pause state ───────────────────
+   When MCU3 detects an obstacle (BLE notify {type:"obstacle",state:1}),
+   MCU2 halts motors and saves the current leg's remainder internally.
+   The browser must NOT advance the replay loop while paused: we
+   clear the active watchdog (stash it for restart on path_clear)
+   and freeze the status display.  When path_clear arrives, MCU2
+   resumes the saved leg and eventually sends the odo frame, which
+   resolves the still-armed pendingOdoCb normally.                */
+var _scWdg        = null; /* active watchdog handle for current SC leg */
+var _scWdgRestart = null; /* function to restart wdg with fresh timeout */
+var obstacleActive = false;
+var _stBeforeObstacle = '';
+
+/* Called when MCU3 reports an obstacle (BLE notify {type:"obstacle"}).
+   MCU2 has already halted the motors and saved the current leg's
+   remainder internally.  We must NOT advance the replay loop \u2014 just
+   freeze the watchdog and surface a status message.  When path_clear
+   arrives, MCU2 resumes the saved leg and finally sends odo, which
+   resolves the still-armed pendingOdoCb normally.                   */
+function onObstacle() {
+  if (obstacleActive) return;
+  obstacleActive = true;
+  if (_scWdg) { clearTimeout(_scWdg); _scWdg = null; }
+  _stBeforeObstacle = document.getElementById('stmsg').textContent || '';
+  dbgEvent('obstacle', 'PAUSE \u2014 wdg frozen, pendingCb='+(!!pendingOdoCb), 'W');
+  setSt('\u26d4 Obstacle detected \u2014 paused (waiting for path clear\u2026)');
+}
+function onPathClear() {
+  if (!obstacleActive) return;
+  obstacleActive = false;
+  dbgEvent('path-clear', 'RESUME \u2014 wdg re-armed, pendingCb='+(!!pendingOdoCb), 'G');
+  if (_scWdgRestart && pendingOdoCb) _scWdgRestart();
+  if (_stBeforeObstacle) setSt(_stBeforeObstacle + ' (resumed)');
+  else                   setSt('\u2705 Path clear \u2014 resuming');
+}
+
+/* Called when CAN 0x214 odometry frame arrives from MCU2. */
+function onOdometry(dir, s1, s2) {
+  var steps = Math.round((s1 + s2) / 2);
+  var hasCb = !!pendingOdoCb;
+  var dirMatch = (pendingOdoDir < 0 || pendingOdoDir === dir);
+  dbgEvent('odo', _DN[dir]+' s1='+s1+' s2='+s2+' avg='+steps+(hasCb ? (dirMatch ? ' CB✓' : ' DIR-MISMATCH(exp '+_DN[pendingOdoDir]+')') : ' NO-CB!'), (hasCb && dirMatch) ? 'G' : 'W');
+  /* Update last recorded segment with actual hardware step count */
+  if (pendingOdoSeg >= 0 && pendingOdoSeg < tripLog.length) {
+    tripLog[pendingOdoSeg].steps = steps;
+    pendingOdoSeg = -1;
+  }
+  /* Resolve pending replay step-count callback — only if direction matches */
+  if (pendingOdoCb && dirMatch) {
+    if (obstacleActive) {
+      _obsLog('ODO-WHILE-PAUSED', 'dir='+_DN[dir]+' s1='+s1+' s2='+s2+' steps='+steps);
+    }
+    var cb = pendingOdoCb;
+    pendingOdoCb = null;
+    pendingOdoDir = -1;
+    cb(steps);
+  }
+}
+
+function segBegin(dir) {
+  tSeg = { dir:dir, t0:Date.now(), hdg0:heading };
+  if (recording) rSeg = { dir:dir, t0:Date.now(), hdg0:heading };
+}
+function segEnd() {
+  function finalize(s, into) {
+    var dur = Date.now() - s.t0;
+    if (dur < 80) return;     /* drop accidental taps */
+    into.push({
+      dir: s.dir,
+      dur: dur,
+      steps: Math.round(dur * CRAWL_STEPS_PER_MS), /* estimated; updated by odo ACK */
+      hdg_start: s.hdg0,
+      hdg_end:   heading
+    });
+  }
+  if (tSeg.dir >= 0) {
+    finalize(tSeg, tripLog);
+    if (tripLog.length > 0) pendingOdoSeg = tripLog.length - 1;
+    tSeg.dir = -1;
+  }
+  if (recording && rSeg.dir >= 0) { finalize(rSeg, currentRec); rSeg.dir = -1; }
+  updateInfo();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Move engine
+   MCU2 motors run at constant CRAWL speed. The `steps` field in each
+   command just keeps the stepper task alive; the motor truly stops only
+   on a stop command (steps=0). We therefore track time, not steps.
+═══════════════════════════════════════════════════════════════════════ */
+var STEPS = 20, INTERVAL = 150;   /* keep-alive burst interval */
+var moveTimer  = null;   /* rAF handle (non-null = active) */
+var moveDir    = -1;
+var movePrevTs = 0;   /* timestamp of last odometry tick */
+var moveLastSendTs = 0; /* timestamp of last keep-alive CAN send */
+var replaying  = false;
+
+function startMove(dir) {
+  dbgEvent('startMove', ['FWD','BWD','LEFT','RIGHT'][dir]);
+  if (moveTimer !== null) { cancelAnimationFrame(moveTimer); moveTimer = null; }
+  moveDir    = dir;
+  movePrevTs = Date.now();
+  moveLastSendTs = movePrevTs;
+  dbg.timerFireTs = movePrevTs;
+  send({cmd:'move', dir:dir, steps:STEPS});
+  function rafLoop() {
+    if (moveDir < 0) return;   /* stopMove cleared it */
+    var now = Date.now();
+    /* DEBUG: jitter measured against INTERVAL target */
+    var elapsed = now - moveLastSendTs;
+    if (dbg.timerFireTs > 0) dbgRolling(dbg.timerIntervals, elapsed, 60);
+    dbg.timerFireTs = now;
+    if (elapsed >= INTERVAL) {
+      /* Enough time passed — send keep-alive + tick odometry */
+      applyTime(dir, now - movePrevTs);
+      movePrevTs = now;
+      send({cmd:'move', dir:dir, steps:STEPS});
+      moveLastSendTs = now;
+    }
+    moveTimer = requestAnimationFrame(rafLoop);
+  }
+  moveTimer = requestAnimationFrame(rafLoop);
+}
+function stopMove() {
+  dbgEvent('stopMove', moveDir >= 0 ? ['FWD','BWD','LEFT','RIGHT'][moveDir] : '—');
+  if (moveTimer !== null) { cancelAnimationFrame(moveTimer); moveTimer = null; }
+  dbg.timerFireTs = 0;
+  if (moveDir >= 0) {
+    applyTime(moveDir, Date.now() - movePrevTs);
+    moveDir = -1;
+  }
+  send({cmd:'stop'});
+}
+function manualStart(dir){ if(replaying) return; segBegin(dir); startMove(dir); }
+function manualStop()    { if(replaying) return; stopMove();    segEnd();       }
+
+function bind(id, dir) {
+  var el = document.getElementById(id);
+  function dn(e){ e.preventDefault(); el.classList.add('P'); if(recording) el.classList.add('R'); manualStart(dir); }
+  function up(e){ if(e&&e.cancelable) e.preventDefault(); el.classList.remove('P','R'); manualStop(); }
+  el.addEventListener('mousedown',  dn);
+  el.addEventListener('touchstart', dn, {passive:false});
+  el.addEventListener('mouseup',    up);
+  el.addEventListener('mouseleave', up);
+  el.addEventListener('touchend',   up, {passive:false});
+  el.addEventListener('touchcancel',up, {passive:false});
+}
+bind('bF',0); bind('bB',1); bind('bL',2); bind('bR',3);
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Checkpoint save — robust with retry + immediate browser-side persist
+
+   Two layers of saving:
+   (a) BROWSER:  saveRoute() to localStorage — always succeeds, never lost
+   (b) MCU2 NVS: send 'save_cp' over WS, expect 0x212 ACK within 2s.
+                 Retry up to 3 times if no ACK. Display result.
+═══════════════════════════════════════════════════════════════════════ */
+var pendingCP = null;     /* {id, attempts, timer} */
+
+function saveCP(id) {
+  /* (a) Always persist the route in the browser first — this never fails. */
+  if (tripLog.length > 0) {
+    var name = id===0 ? 'Home' : 'CP'+id;
+    saveRoute(name, tripLog.slice());
+    if (id===0) tripLog = [];
+  }
+
+  /* (b) Tell MCU2 to also store this CP in its NVS, with retry on no-ACK. */
+  if (pendingCP && pendingCP.timer) clearTimeout(pendingCP.timer);
+  pendingCP = { id: id, attempts: 0 };
+  trySendCP();
+}
+function trySendCP() {
+  if (!pendingCP) return;
+  pendingCP.attempts++;
+  if (!ok) {
+    setSt('CP '+pendingCP.id+': WS not connected — saved in browser only');
+    pendingCP = null; return;
+  }
+  send({cmd:'save_cp', id: pendingCP.id});
+  setSt('Saving CP '+pendingCP.id+'… (attempt '+pendingCP.attempts+'/3)');
+  pendingCP.timer = setTimeout(function() {
+    if (!pendingCP) return;
+    if (pendingCP.attempts >= 3) {
+      setSt('CP '+pendingCP.id+': MCU2 no ACK — saved in browser only');
+      pendingCP = null;
+    } else {
+      trySendCP();
+    }
+  }, 2000);
+}
+function onAckCP(cp_id, result) {
+  if (pendingCP && pendingCP.id === cp_id) {
+    if (pendingCP.timer) clearTimeout(pendingCP.timer);
+    pendingCP = null;
+  }
+  setSt('CP ' + cp_id + (result === 0 ? ' saved ✓ (browser + MCU2)' : ' MCU2 reported error '+result));
+}
+function promptCP() {
+  var id = parseInt(prompt('Checkpoint ID (1-15):'),10);
+  if (!isNaN(id) && id>=1 && id<=15) saveCP(id);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Persistent route storage
+═══════════════════════════════════════════════════════════════════════ */
+var routes = {};
+function loadRoutes() {
+  try { routes = JSON.parse(localStorage.getItem('rroutes')||'{}'); } catch(e) { routes={}; }
+  rebuildSel();
+}
+function saveRoute(name, arr) {
+  routes[name] = arr;
+  localStorage.setItem('rroutes', JSON.stringify(routes));
+  rebuildSel(); selByName(name); updateInfo();
+  if (typeof rebuildGraphUI === 'function') rebuildGraphUI();
+}
+function rebuildSel() {
+  var sel = document.getElementById('routeSel');
+  var keys = Object.keys(routes);
+  sel.innerHTML = keys.length===0
+    ? '<option value="">— no saved routes —</option>'
+    : keys.map(function(k){ return '<option value="'+k+'">'+k+' ('+routes[k].length+' segs)</option>'; }).join('');
+  updateInfo();
+}
+function selByName(name) {
+  var sel = document.getElementById('routeSel');
+  for (var i=0;i<sel.options.length;i++) if (sel.options[i].value===name) { sel.selectedIndex=i; break; }
+}
+function onRouteSel() { updateInfo(); }
+function totalDur(r) { return r.reduce(function(s,x){return s+x.dur;},0); }
+function updateInfo() {
+  var sel = document.getElementById('routeSel');
+  var name = sel.value, r = routes[name], el = document.getElementById('recinfo');
+  if (recording)      el.textContent = '● Recording — '+currentRec.length+' segment(s)';
+  else if (replaying) el.textContent = '▶ Replaying…';
+  else if (r)         el.textContent = '"'+name+'": '+r.length+' segs · '+totalDur(r)+'ms';
+  else                el.textContent = 'Trip log: '+tripLog.length+' auto segments';
+}
+function deleteRoute() {
+  var sel = document.getElementById('routeSel');
+  var name = sel.value;
+  if (!name || !routes[name]) return;
+  if (!confirm('Delete route "'+name+'"?')) return;
+  delete routes[name];
+  localStorage.setItem('rroutes', JSON.stringify(routes));
+  rebuildSel();
+  if (typeof rebuildGraphUI === 'function') rebuildGraphUI();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Record toggle
+═══════════════════════════════════════════════════════════════════════ */
+function toggleRecord() {
+  if (replaying) return;
+  recording = !recording;
+  var btn = document.getElementById('recBtn');
+  if (recording) {
+    currentRec = []; rSeg.dir = -1;
+    btn.textContent = '⏹ Stop Rec'; btn.className = 'rbtn REC';
+    setSt('● Recording — drive the robot');
+  } else {
+    btn.textContent = '⏺ Record'; btn.className = 'rbtn';
+    if (currentRec.length===0) { setSt('Nothing recorded'); updateInfo(); return; }
+    /* If the graph editor pre-set an edge name, use it without prompting. */
+    var name = (typeof _pendingEdgeName === 'string' && _pendingEdgeName)
+      ? _pendingEdgeName
+      : prompt('Save route as:', 'Route'+(Object.keys(routes).length+1));
+    _pendingEdgeName = null;
+    if (name && name.trim()) {
+      saveRoute(name.trim(), currentRec.slice());
+      setSt('Saved "'+name.trim()+'" ('+currentRec.length+' segs)');
+    }
+  }
+  updateInfo();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Replay engine — TIME-BASED (deterministic)
+   For each segment: send `move`, wait exactly `dur` ms, send `stop`,
+   wait 250ms settle, move to next segment.
+   This perfectly reproduces the motor motion because CRAWL speed is
+   constant and the only control variable is time.
+═══════════════════════════════════════════════════════════════════════ */
+
+/* Drive direction `dir` for `ms` milliseconds (or `stepsTarget` hardware steps if >=200),
+   then call onDone(lag_ms). */
+function driveFor(dir, ms, onDone, stepsTarget) {
+  dbgEvent('driveFor-enter', _DN[dir]+' ms='+ms+' stepsTarget='+stepsTarget+' bleOK='+ok+' cmdChar='+(!!cmdChar), 'G');
+  /* ── STEP-COUNT CLOSED-LOOP MODE ──
+     MCU2 threshold = 200 (STEP_COUNT_THRESHOLD). When cmd.steps >= 200, MCU2
+     enters step-count mode: ISR self-stops at target and sends CAN 0x214 odo frame.
+     Browser waits for that odo ACK instead of using setTimeout.
+     Watchdog fires at 2×ms+2s if BLE drops. */
+  if (stepsTarget >= 200) {
+    var _scStart = Date.now();
+    var _mySeq = ++pendingOdoSeq;
+    dbgEvent('SC-start', _DN[dir]+' tgt='+stepsTarget+' exp='+ms+'ms seq='+_mySeq+' bleOK='+ok, 'G');
+    send({cmd:'move', dir:dir, steps:stepsTarget});
+    /* Watchdog factored into a (re)startable function so onPathClear()
+       can restart it after an obstacle pause without losing pendingOdoCb. */
+    function _armWdg(extraMs) {
+      var _armTs = Date.now();
+      return setTimeout(function() {
+        if (pendingOdoSeq !== _mySeq || !pendingOdoCb) return; /* already resolved */
+        if (obstacleActive) { /* still paused — do not fire */
+          _obsLog('WDG-DEFERRED', 'obstacleActive=true odoSeq='+pendingOdoSeq+' mySeq='+_mySeq);
+          _scWdg = _armWdg(ms);  /* re-arm conservatively */
+          return;
+        }
+        var _wdgMs = Date.now() - _scStart;
+        _obsLog('WDG-FIRED', 'NO-ODO after '+_wdgMs+'ms dir='+_DN[dir]+' seq='+_mySeq+
+                ' obstacleActive='+obstacleActive+' pendingCb=true');
+        pendingOdoCb = null;
+        pendingOdoDir = -1;
+        dbgEvent('SC-WDG', _DN[dir]+' NO ODO after '+_wdgMs+'ms (exp '+ms+'ms)', 'E');
+        send({cmd:'stop'});
+        applyTime(dir, ms);
+        setTimeout(function() { onDone(0); }, 100);
+      }, ms * 2 + 2000 + (extraMs||0));
+    }
+    _scWdg = _armWdg(0);
+    _scWdgRestart = function() { _scWdg = _armWdg(0); };
+    var wdg = _scWdg;
+    pendingOdoDir = dir;
+    pendingOdoCb = function(steps) {
+      if (pendingOdoSeq !== _mySeq) {
+        dbgEvent('SC-stale-cb', _DN[dir]+' seq='+_mySeq+' cur='+pendingOdoSeq+' DISCARDED', 'W');
+        return;
+      }
+      clearTimeout(wdg);
+      if (_scWdg) clearTimeout(_scWdg);
+      _scWdg = null; _scWdgRestart = null;
+      var _scMs = Date.now() - _scStart;
+      dbgEvent('SC-odo-cb', _DN[dir]+' steps='+steps+' actual='+_scMs+'ms exp='+ms+'ms', 'G');
+      dbgRolling(dbg.replayLog, { dir:dir, cmdMs:ms, actualMs:_scMs, lag:_scMs-ms, mode:'SC' }, 40);
+      send({cmd:'stop'});  /* belt-and-suspenders: MCU2 already stopped */
+      /* Update odometry from real step count (FWD/BWD only; turns use time-based) */
+      if (dir === 0 || dir === 1) {
+        var rad = heading * Math.PI / 180;
+        if (dir === 0) { posX += steps * Math.sin(rad); posY += steps * Math.cos(rad); }
+        else           { posX -= steps * Math.sin(rad); posY -= steps * Math.cos(rad); }
+        setText('px', posX.toFixed(0)); setText('py', posY.toFixed(0));
+        setText('pdist', Math.sqrt(posX*posX + posY*posY).toFixed(0));
+      } else {
+        applyTime(dir, ms);  /* turns: time-based heading */
+      }
+      setTimeout(function() { onDone(0); }, 100);
+    };
+    return;
+  }
+  /* ── TIME-BASED MODE (fallback / manual / old routes without steps) ── */
+  if (ms <= 50) { setTimeout(function() { onDone(0); }, 50); return; }
+  var _t0 = Date.now();
+  dbgEvent('driveFor', ['FWD','BWD','LEFT','RIGHT'][dir] + ' cmd=' + ms + 'ms');
+  send({cmd:'move', dir:dir, steps:STEPS});
+  /* rAF keep-alive — never throttled unlike setInterval */
+  var _rafHandle = null;
+  var _lastSend = Date.now();
+  function _raf() {
+    var n = Date.now();
+    if (n - _lastSend >= INTERVAL) {
+      send({cmd:'move', dir:dir, steps:STEPS});
+      _lastSend = n;
+    }
+    _rafHandle = requestAnimationFrame(_raf);
+  }
+  _rafHandle = requestAnimationFrame(_raf);
+  setTimeout(function() {
+    var _actual = Date.now() - _t0;
+    var _lag = _actual - ms;
+    dbgRolling(dbg.replayLog, { dir:dir, cmdMs:ms, actualMs:_actual, lag:_lag }, 40);
+    dbgEvent('driveFor-stop', ['FWD','BWD','LEFT','RIGHT'][dir]+' actual='+_actual+'ms lag=+'+_lag+'ms', _lag > 50 ? 'W' : 'G');
+    cancelAnimationFrame(_rafHandle);
+    send({cmd:'stop'});
+    applyTime(dir, _actual);  /* use actual elapsed — more accurate odometry */
+    setTimeout(function() { onDone(_lag); }, 100);  /* settle 100ms, pass lag to caller */
+  }, ms);
+}
+
+function setReplayBtn(active) {
+  document.getElementById('repBtn').textContent = active ? '⏹ Stop'    : '▶ Replay';
+  document.getElementById('repBtn').className   = active ? 'rbtn REC'  : 'rbtn GO';
+}
+
+function doReplay(segments, onDone) {
+  dbgEvent('doReplay-start', 'segs='+segments.length+' bleOK='+ok+' cmdChar='+(!!cmdChar), 'G');
+  replaying = true;
+  setReplayBtn(true);
+  var i = 0;
+  function next(prevLag) {
+    if (!replaying || i >= segments.length) {
+      dbgEvent('doReplay-end', 'i='+i+'/'+segments.length+' replaying='+replaying, 'G');
+      _replayI = -1; _replayN = -1;
+      replaying = false;
+      stopMove();
+      setReplayBtn(false);
+      if (onDone) onDone();
+      return;
+    }
+    var seg = segments[i++];
+    _replayI = i; _replayN = segments.length;
+    /* Subtract previous segment's overrun so error doesn't accumulate */
+    var adjDur = Math.max(50, seg.dur - Math.max(0, prevLag || 0));
+    var useStepCount = (seg.steps || 0) >= 200;
+    dbgEvent('seg', '#'+i+'/'+segments.length+' '+_DN[seg.dir]+' dur='+seg.dur+'ms adj='+adjDur+'ms steps='+(seg.steps||0)+(useStepCount?' [SC]':' [time]'), 'G');
+    setSt('Replay ' + i + '/' + segments.length +
+          '  dir=' + ['FWD','BWD','LEFT','RIGHT'][seg.dir] +
+          '  ' + adjDur + 'ms' + (prevLag > 5 ? ' (adj -'+prevLag+'ms)' : ''));
+    driveFor(seg.dir, adjDur, next, seg.steps || 0);
+  }
+  next(0);
+}
+
+function toggleReplay() {
+  if (recording) return;
+  if (replaying) { replaying = false; stopMove(); setReplayBtn(false); return; }
+  var name = document.getElementById('routeSel').value;
+  var r = routes[name];
+  if (!r || r.length === 0) { setSt('Select a route first'); return; }
+  setSt('Replaying "' + name + '"…');
+  doReplay(r.slice(), function() { setSt('Replay done ✓'); updateInfo(); });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Return Home — path inversion (Borenstein §3.4)
+   Walk tripLog in REVERSE with FLIP'd directions at the SAME duration.
+   Because the motor runs at constant speed, this is the exact inverse:
+     FWD for T ms  ↔  BWD for T ms  (same distance, opposite direction)
+     LEFT for T ms ↔  RIGHT for T ms (same angle, opposite direction)
+   No calibration, no drift, no odometry error — purely deterministic.
+═══════════════════════════════════════════════════════════════════════ */
+var FLIP = [1, 0, 3, 2];   /* FWD↔BWD, LEFT↔RIGHT */
+
+function returnHome() {
+  if (recording || replaying) return;
+  var src = tripLog.length > 0 ? tripLog
+    : (function() { var n = document.getElementById('routeSel').value; return routes[n] || null; })();
+  if (!src || src.length === 0) { setSt('No trip recorded'); return; }
+
+  var rev = src.slice().reverse().map(function(s) {
+    return { dir: FLIP[s.dir], dur: s.dur, steps: s.steps || 0 };
+  });
+  setSt('Returning home… (' + rev.length + ' segments)');
+  doReplay(rev, function() {
+    tripLog = [];
+    setSt('Home ✓  (drive completed — tap "Mark Home" if position is confirmed)');
+    updateInfo();
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CUSTOMER ORDERING — Sync table list + receive orders
+   ─────────────────────────────────────────────────────────────────────
+   syncTables(): reads gnodes, filters type==="table", sends BLE cmd
+   onOrder(d): called when type:"order" arrives via BLE notify
+   ═══════════════════════════════════════════════════════════════════════ */
+var allOrders = [];
+var ordersHidden = false;
+
+function syncTables() {
+  var tables = Object.keys(gnodes).filter(function(k){ return gnodes[k]==='table'; });
+  if (tables.length === 0) {
+    document.getElementById('syncTablesInfo').textContent = 'No nodes marked as "table" yet. Tap nodes in the graph to set their type.';
+    return;
+  }
+  send({cmd:'set_tables', tables: tables});
+  document.getElementById('syncTablesInfo').textContent = 'Synced ' + tables.length + ' table(s): ' + tables.join(', ');
+  dbgEvent('sync-tables', tables.join(', '), 'G');
+}
+
+function onOrder(d) {
+  var o = { id: d.id||0, table: d.table||'?', items: d.items||'', ts: Date.now() };
+  allOrders.unshift(o);
+  renderOrders();
+  dbgEvent('order', '#'+o.id+' '+o.table+': '+o.items, 'G');
+}
+
+function renderOrders() {
+  var list = document.getElementById('ordersList');
+  var empty = document.getElementById('ordersEmpty');
+  var badge = document.getElementById('ordersBadge');
+  var pending = allOrders.filter(function(o){ return !o.done; });
+  badge.textContent = pending.length;
+  badge.style.display = pending.length > 0 ? '' : 'none';
+  if (allOrders.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = allOrders.map(function(o, i) {
+    var t = new Date(o.ts);
+    var time = t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0');
+    return '<div style="background:'+(o.done?'#f5f5f5':'#fffbf0')+';border-radius:8px;padding:8px 10px;margin-bottom:6px;border-left:3px solid '+(o.done?'#ccc':'#f4a933')+'">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center">'
+      + '<b>' + escHtml(o.table) + '</b>'
+      + '<span style="font-size:.65rem;color:#aaa">' + time + '</span>'
+      + '</div>'
+      + '<div style="color:#555;margin:2px 0 4px">' + escHtml(o.items) + '</div>'
+      + (o.done
+        ? '<span style="font-size:.65rem;color:#34a853">&#10003; Delivered</span>'
+        : '<span style="font-size:.65rem;color:#f4a933">&#9679; Pending delivery</span>')
+      + '</div>';
+  }).join('');
+}
+
+function markDelivered(i) {
+  if (allOrders[i]) { allOrders[i].done = true; renderOrders(); }
+}
+
+function clearOrders() {
+  allOrders = [];
+  renderOrders();
+}
+
+function toggleOrders() {
+  ordersHidden = !ordersHidden;
+  document.getElementById('ordersBody').style.display = ordersHidden ? 'none' : '';
+  document.getElementById('ordersToggleBtn').textContent = ordersHidden ? 'Show' : 'Hide';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MULTI-TABLE DELIVERY: Checkpoint graph + Dijkstra + TSP
+   ─────────────────────────────────────────────────────────────────────
+   Convention: a route saved with name "From->To" is a directed edge.
+   Nodes are derived from edge names + an explicit nodes list (gnodes).
+   Each node has a type: "start" (kitchen), "table", or "junction".
+   Reverse edges are auto-derived from forward edges (FLIP'd dirs +
+   reversed segment order) — same trick as returnHome().
+   Tour planning: Dijkstra all-pairs steps cost; TSP brute-force ≤8
+   tables, nearest-neighbour + 2-opt above.  Pause for "unloaded"
+   confirmation when arriving at any "table" node.
+═══════════════════════════════════════════════════════════════════════ */
+var _pendingEdgeName = null;     /* set by recordEdge(); consumed in toggleRecord */
+var gnodes = {};                 /* { "Kitchen":"start", "T1":"table", ... } */
+var _nodeTypes = ['start','table','junction'];
+var _delivery = null;            /* active delivery state {tour, idx, abort} */
+
+function loadGraph() {
+  try { gnodes = JSON.parse(localStorage.getItem('gnodes')||'{}'); }
+  catch(e){ gnodes = {}; }
+}
+function saveGraph() { localStorage.setItem('gnodes', JSON.stringify(gnodes)); }
+
+/* Parse a route name "A->B" into [from, to], or null if not edge-shaped. */
+function parseEdgeName(name) {
+  var m = String(name||'').split('->');
+  if (m.length !== 2) return null;
+  var a = m[0].trim(), b = m[1].trim();
+  if (!a || !b || a === b) return null;
+  return [a, b];
+}
+
+/* Collect graph state from `routes` + `gnodes`. Returns
+   { nodes:[names], edges:{from:{to:{segs,cost}}} } with reverses synthesised. */
+function buildGraph() {
+  var edges = {};
+  var nodeSet = {};
+  Object.keys(gnodes).forEach(function(n){ nodeSet[n] = true; });
+
+  function addEdge(from, to, segs) {
+    nodeSet[from] = true; nodeSet[to] = true;
+    var cost = 0;
+    for (var i=0;i<segs.length;i++) cost += (segs[i].steps || segs[i].dur || 0);
+    if (!edges[from]) edges[from] = {};
+    /* forward overrides synthesised reverse */
+    edges[from][to] = { segs: segs, cost: cost, synth: false };
+  }
+  function addSynthReverse(from, to, segs) {
+    if (edges[to] && edges[to][from] && !edges[to][from].synth) return;  /* real edge wins */
+    var rev = segs.slice().reverse().map(function(s){
+      return { dir: FLIP[s.dir], dur: s.dur, steps: s.steps || 0 };
+    });
+    var cost = 0;
+    for (var i=0;i<rev.length;i++) cost += (rev[i].steps || rev[i].dur || 0);
+    if (!edges[to]) edges[to] = {};
+    edges[to][from] = { segs: rev, cost: cost, synth: true };
+  }
+
+  Object.keys(routes).forEach(function(name){
+    var p = parseEdgeName(name);
+    if (!p) return;
+    var segs = routes[name];
+    if (!segs || !segs.length) return;
+    addEdge(p[0], p[1], segs);
+  });
+  /* second pass: synthesise reverses where forward edge exists but reverse doesn't */
+  Object.keys(routes).forEach(function(name){
+    var p = parseEdgeName(name);
+    if (!p) return;
+    var segs = routes[name];
+    if (!segs || !segs.length) return;
+    addSynthReverse(p[0], p[1], segs);
+  });
+
+  return { nodes: Object.keys(nodeSet).sort(), edges: edges };
+}
+
+/* Dijkstra from `src` over graph `g`. Returns { dist:{n:cost}, prev:{n:nodename} }. */
+function dijkstra(g, src) {
+  var dist = {}, prev = {}, visited = {};
+  g.nodes.forEach(function(n){ dist[n] = Infinity; });
+  dist[src] = 0;
+  while (true) {
+    /* simple O(V^2) — fine for restaurant-scale graphs */
+    var u = null, best = Infinity;
+    for (var i=0;i<g.nodes.length;i++) {
+      var n = g.nodes[i];
+      if (!visited[n] && dist[n] < best) { best = dist[n]; u = n; }
+    }
+    if (u === null) break;
+    visited[u] = true;
+    var neigh = g.edges[u] || {};
+    Object.keys(neigh).forEach(function(v){
+      var alt = dist[u] + neigh[v].cost;
+      if (alt < dist[v]) { dist[v] = alt; prev[v] = u; }
+    });
+  }
+  return { dist: dist, prev: prev };
+}
+
+/* Reconstruct path of node names from src to dst using prev map. */
+function pathFromPrev(prev, src, dst) {
+  var path = [dst], cur = dst;
+  while (cur !== src) {
+    if (!(cur in prev)) return null;  /* unreachable */
+    cur = prev[cur];
+    path.push(cur);
+  }
+  return path.reverse();
+}
+
+/* TSP: visit start → all of `tables` (any order) → start. Returns optimal
+   ordering of tables (array of names). Brute-forces if ≤8 tables, else
+   uses nearest-neighbour + 2-opt. */
+function planTour(g, start, tables) {
+  if (!tables.length) return { order: [], cost: 0 };
+  /* all-pairs dist via Dijkstra from each relevant node */
+  var nodes = [start].concat(tables);
+  var dist = {};
+  for (var i=0;i<nodes.length;i++) {
+    var r = dijkstra(g, nodes[i]);
+    dist[nodes[i]] = r.dist;
+    /* check reachability */
+    for (var j=0;j<nodes.length;j++) {
+      if (i!==j && !isFinite(r.dist[nodes[j]])) {
+        return { error: 'No path from "'+nodes[i]+'" to "'+nodes[j]+'"' };
+      }
+    }
+  }
+  function tourCost(order) {
+    var c = dist[start][order[0]];
+    for (var k=0;k<order.length-1;k++) c += dist[order[k]][order[k+1]];
+    c += dist[order[order.length-1]][start];
+    return c;
+  }
+  if (tables.length <= 8) {
+    /* brute-force all permutations */
+    var best = null, bestCost = Infinity;
+    function perm(arr, k) {
+      if (k === arr.length-1) {
+        var c = tourCost(arr);
+        if (c < bestCost) { bestCost = c; best = arr.slice(); }
+        return;
+      }
+      for (var i=k;i<arr.length;i++) {
+        var t = arr[k]; arr[k] = arr[i]; arr[i] = t;
+        perm(arr, k+1);
+        t = arr[k]; arr[k] = arr[i]; arr[i] = t;
+      }
+    }
+    perm(tables.slice(), 0);
+    return { order: best, cost: bestCost };
+  } else {
+    /* nearest-neighbour from start */
+    var unv = tables.slice(), order = [], cur = start;
+    while (unv.length) {
+      var bi = 0, bd = dist[cur][unv[0]];
+      for (var i=1;i<unv.length;i++) if (dist[cur][unv[i]] < bd) { bd = dist[cur][unv[i]]; bi = i; }
+      order.push(unv[bi]); cur = unv[bi]; unv.splice(bi,1);
+    }
+    /* 2-opt */
+    var improved = true, iter = 0;
+    while (improved && iter++ < 200) {
+      improved = false;
+      for (var i=0;i<order.length-1;i++) {
+        for (var j=i+1;j<order.length;j++) {
+          var a = i===0 ? start : order[i-1];
+          var b = order[i];
+          var c = order[j];
+          var d = j===order.length-1 ? start : order[j+1];
+          var d1 = dist[a][b] + dist[c][d];
+          var d2 = dist[a][c] + dist[b][d];
+          if (d2 + 1 < d1) {
+            /* reverse segment i..j */
+            order = order.slice(0,i)
+                   .concat(order.slice(i,j+1).reverse())
+                   .concat(order.slice(j+1));
+            improved = true;
+          }
+        }
+      }
+    }
+    return { order: order, cost: tourCost(order) };
+  }
+}
+
+/* Concatenate edges along a sequence of nodes [n0,n1,n2,...] into one
+   segments array, plus a parallel array of "arrived" node names per edge. */
+function concatPath(g, nodeSeq) {
+  var segs = [], arrived = [];
+  for (var i=0;i<nodeSeq.length-1;i++) {
+    var e = (g.edges[nodeSeq[i]]||{})[nodeSeq[i+1]];
+    if (!e) return null;
+    segs.push({ _edge: nodeSeq[i]+'->'+nodeSeq[i+1], _segs: e.segs, _to: nodeSeq[i+1] });
+  }
+  return segs;
+}
+
+/* ── UI ─────────────────────────────────────────────────────────────── */
+
+function rebuildGraphUI() {
+  var g = buildGraph();
+  /* ensure every observed node has a gnodes entry */
+  var changed = false;
+  g.nodes.forEach(function(n){
+    if (!(n in gnodes)) {
+      gnodes[n] = (n.toLowerCase().indexOf('kitchen') >= 0) ? 'start'
+                 : (/^t\d+$/i.test(n) ? 'table' : 'junction');
+      changed = true;
+    }
+  });
+  if (changed) saveGraph();
+
+  /* Node chips */
+  var nodeListEl = document.getElementById('nodeList');
+  if (nodeListEl) {
+    if (g.nodes.length === 0) {
+      nodeListEl.innerHTML = '<span style="font-size:.6rem;color:#999">No nodes yet — record an edge "Kitchen-&gt;T1" or click + Node.</span>';
+    } else {
+      nodeListEl.innerHTML = g.nodes.map(function(n){
+        var t = gnodes[n] || 'junction';
+        var color = t==='start' ? '#1a73e8' : t==='table' ? '#34a853' : '#777';
+        var bg    = t==='start' ? '#e8f0fe' : t==='table' ? '#e8f5e9' : '#f1f3f4';
+        return '<span class="gnode" data-n="'+n+'" '+
+               'style="cursor:pointer;font-size:.62rem;padding:3px 8px;border-radius:8px;'+
+               'background:'+bg+';color:'+color+';border:1px solid '+color+'33">'+
+               n+' <span style="opacity:.7">['+t+']</span></span>';
+      }).join('');
+      Array.prototype.forEach.call(nodeListEl.querySelectorAll('.gnode'), function(el){
+        el.onclick = function(){
+          var n = el.getAttribute('data-n');
+          var idx = _nodeTypes.indexOf(gnodes[n]||'junction');
+          /* cycle: junction → start → table → junction; only one start allowed */
+          var nx = _nodeTypes[(idx+1) % _nodeTypes.length];
+          if (nx === 'start') {
+            Object.keys(gnodes).forEach(function(k){ if (gnodes[k]==='start' && k!==n) gnodes[k]='junction'; });
+          }
+          gnodes[n] = nx;
+          saveGraph();
+          rebuildGraphUI();
+        };
+      });
+    }
+  }
+
+  /* Edge list */
+  var edgeListEl = document.getElementById('edgeList');
+  if (edgeListEl) {
+    var lines = [];
+    Object.keys(g.edges).sort().forEach(function(from){
+      Object.keys(g.edges[from]).sort().forEach(function(to){
+        var e = g.edges[from][to];
+        lines.push((e.synth?'⇠ ':'→ ') + from + ' → ' + to + '   ' + e.segs.length + ' seg, ' + Math.round(e.cost) + (e.synth?' [auto-rev]':''));
+      });
+    });
+    edgeListEl.innerHTML = lines.length ? lines.join('<br>') : '<i>No edges. Record one with "Record Edge".</i>';
+  }
+
+  /* Order picker — show table nodes only */
+  var orderEl = document.getElementById('orderSel');
+  if (orderEl) {
+    var tables = g.nodes.filter(function(n){ return gnodes[n]==='table'; });
+    if (tables.length === 0) {
+      orderEl.innerHTML = '<span style="font-size:.6rem;color:#999">Mark at least one node as "table" (tap a chip).</span>';
+    } else {
+      orderEl.innerHTML = tables.map(function(n){
+        var checked = (_orderPick[n] ? 'checked' : '');
+        return '<label style="display:flex;align-items:center;gap:3px;font-size:.65rem;background:#f5f5f7;padding:4px 8px;border-radius:7px;cursor:pointer">'+
+               '<input type="checkbox" data-n="'+n+'" '+checked+'> '+n+'</label>';
+      }).join('');
+      Array.prototype.forEach.call(orderEl.querySelectorAll('input'), function(cb){
+        cb.onchange = function(){ _orderPick[cb.getAttribute('data-n')] = cb.checked; };
+      });
+    }
+  }
+}
+var _orderPick = {};
+
+function addNode() {
+  var name = prompt('New node name (e.g. "T4", "Hall", "Kitchen"):', '');
+  if (!name) return;
+  name = name.trim();
+  if (!name || name.indexOf('->') >= 0) { alert('Invalid name'); return; }
+  if (gnodes[name]) { alert('Already exists'); return; }
+  gnodes[name] = (name.toLowerCase().indexOf('kitchen')>=0) ? 'start'
+               : (/^t\d+$/i.test(name) ? 'table' : 'junction');
+  saveGraph();
+  rebuildGraphUI();
+}
+
+/* Record a new edge: pick from/to, then start recording.  Sets
+   _pendingEdgeName so toggleRecord saves under "From->To". */
+function recordEdge() {
+  if (recording || replaying) { setSt('Stop current op first'); return; }
+  var g = buildGraph();
+  var nodeNames = g.nodes.length ? g.nodes : ['Kitchen'];
+  var from = prompt('Edge FROM node:\n('+nodeNames.join(', ')+')', nodeNames[0]||'Kitchen');
+  if (!from) return;
+  from = from.trim();
+  var to = prompt('Edge TO node:\n('+nodeNames.join(', ')+')', nodeNames[1]||'T1');
+  if (!to) return;
+  to = to.trim();
+  if (!from || !to || from === to) { alert('Invalid endpoints'); return; }
+  /* register nodes if new */
+  if (!gnodes[from]) gnodes[from] = (from.toLowerCase().indexOf('kitchen')>=0?'start':(/^t\d+$/i.test(from)?'table':'junction'));
+  if (!gnodes[to])   gnodes[to]   = (to.toLowerCase().indexOf('kitchen')>=0?'start':(/^t\d+$/i.test(to)?'table':'junction'));
+  saveGraph();
+  _pendingEdgeName = from + '->' + to;
+  setSt('● Recording edge "'+_pendingEdgeName+'" — drive then click Stop Rec');
+  /* start recording programmatically */
+  if (!recording) toggleRecord();
+}
+
+function toggleGraphPanel() {
+  var body = document.getElementById('graphBody');
+  var btn  = document.getElementById('ghToggleBtn');
+  if (!body || !btn) return;
+  if (body.style.display === 'none') { body.style.display = ''; btn.textContent = 'Hide'; }
+  else                                { body.style.display = 'none'; btn.textContent = 'Show'; }
+}
+
+/* ── Delivery executor ──────────────────────────────────────────────── */
+
+function planAndDeliver() {
+  if (recording) { setSt('Stop recording first'); return; }
+  if (replaying) { setSt('Replay in progress'); return; }
+  if (_delivery) { setSt('Delivery already running'); return; }
+
+  var g = buildGraph();
+  var start = null;
+  Object.keys(gnodes).forEach(function(n){ if (gnodes[n]==='start') start = n; });
+  if (!start) { alert('Mark one node as "start" (tap a chip until it shows [start]).'); return; }
+
+  var picked = Object.keys(_orderPick).filter(function(n){ return _orderPick[n] && gnodes[n]==='table'; });
+  if (picked.length === 0) { alert('Pick at least one delivery table.'); return; }
+
+  var plan = planTour(g, start, picked);
+  if (plan.error) { alert('Planning failed: '+plan.error); return; }
+
+  /* full node sequence: start → table1 → table2 → … → start */
+  var nodeSeq = [start].concat(plan.order).concat([start]);
+  var legs = [];   /* [{from,to,segs,isDelivery}] */
+  for (var i=0;i<nodeSeq.length-1;i++) {
+    var e = (g.edges[nodeSeq[i]]||{})[nodeSeq[i+1]];
+    if (!e) {
+      /* path may need intermediate junction nodes — solve with Dijkstra */
+      var dj = dijkstra(g, nodeSeq[i]);
+      var sub = pathFromPrev(dj.prev, nodeSeq[i], nodeSeq[i+1]);
+      if (!sub) { alert('No path from '+nodeSeq[i]+' to '+nodeSeq[i+1]); return; }
+      for (var k=0;k<sub.length-1;k++) {
+        var ee = (g.edges[sub[k]]||{})[sub[k+1]];
+        legs.push({ from:sub[k], to:sub[k+1], segs:ee.segs,
+                    isDelivery:(k===sub.length-2 && gnodes[sub[k+1]]==='table') });
+      }
+    } else {
+      legs.push({ from:nodeSeq[i], to:nodeSeq[i+1], segs:e.segs,
+                  isDelivery:(gnodes[nodeSeq[i+1]]==='table') });
+    }
+  }
+
+  /* show plan */
+  var summary = 'Tour: ' + nodeSeq.join(' → ') + '\n' +
+                'Total cost ≈ ' + Math.round(plan.cost) + ' steps\n' +
+                'Legs: ' + legs.length;
+  document.getElementById('planInfo').textContent = summary;
+  setSt('Delivering ('+legs.length+' legs)…');
+
+  _delivery = { legs: legs, idx: 0, abort: false };
+  runNextLeg();
+}
+
+function runNextLeg() {
+  dbgEvent('runNextLeg', '_delivery='+(!!_delivery)+' abort='+(_delivery&&_delivery.abort)+' idx='+(_delivery?_delivery.idx:'-')+'/'+(_delivery?_delivery.legs.length:'-'), 'G');
+  if (!_delivery || _delivery.abort) { _delivery = null; return; }
+  var d = _delivery;
+  if (d.idx >= d.legs.length) {
+    setSt('Delivery complete ✓');
+    document.getElementById('planInfo').textContent += '\n✓ All deliveries done';
+    _delivery = null;
+    return;
+  }
+  var leg = d.legs[d.idx];
+  setSt('Leg ' + (d.idx+1) + '/' + d.legs.length + '  ' + leg.from + ' → ' + leg.to);
+  document.getElementById('planInfo').textContent =
+    'Leg ' + (d.idx+1) + '/' + d.legs.length + ': ' + leg.from + ' → ' + leg.to + ' (' + leg.segs.length + ' seg)';
+
+  dbgEvent('leg-start', '#'+(d.idx+1)+'/'+d.legs.length+' '+leg.from+'→'+leg.to+' segs='+leg.segs.length+' isDelivery='+leg.isDelivery, 'G');
+  doReplay(leg.segs.slice(), function() {
+    dbgEvent('leg-done', '#'+(d.idx+1)+' isDelivery='+leg.isDelivery+' bleOK='+ok, 'G');
+    if (!_delivery || _delivery.abort) { _delivery = null; return; }
+    _delivery.idx++;
+    if (leg.isDelivery) {
+      /* Pause for waiter to unload */
+      var arrivedAt = leg.to;
+      setSt('Arrived at ' + arrivedAt + ' — unload then click OK');
+      setTimeout(function(){
+        dbgEvent('confirm-pre', 'arrivedAt='+arrivedAt+' bleOK='+ok+' cmdChar='+(!!cmdChar), 'G');
+        var _tConfirm0 = Date.now();
+        var confirmed = confirm('Arrived at "' + arrivedAt + '".\n\nClick OK after the food has been unloaded.\n(Cancel = abort delivery.)');
+        var _confirmDur = Date.now() - _tConfirm0;
+        dbgEvent('confirm-post', 'result='+confirmed+' waitMs='+_confirmDur+' bleOK='+ok+' cmdChar='+(!!cmdChar), confirmed?'G':'W');
+        if (!confirmed) { cancelDelivery(); return; }
+        /* Auto-mark all pending orders for this table as delivered */
+        var marked = 0;
+        allOrders.forEach(function(o) {
+          if (!o.done && o.table === arrivedAt) { o.done = true; marked++; }
+        });
+        if (marked > 0) renderOrders();
+        /* Tell ESP32 to mark orders delivered so /api/tables shows table as free */
+        dbgEvent('post-OK-tx', 'about to send order_delivered + runNextLeg', 'G');
+        send({cmd:'order_delivered', table: arrivedAt});
+        /* Small delay so BLE stack settles between order_delivered and the next move command. */
+        setTimeout(function() {
+          dbgEvent('post-OK-runNextLeg', 'idx='+(_delivery?_delivery.idx:'null')+' bleOK='+ok, 'G');
+          runNextLeg();
+        }, 200);
+      }, 50);
+    } else {
+      /* Pure transit — small settle then continue */
+      setTimeout(runNextLeg, 200);
+    }
+  });
+}
+
+function cancelDelivery() {
+  if (_delivery) _delivery.abort = true;
+  if (replaying) { replaying = false; stopMove(); setReplayBtn(false); }
+  _delivery = null;
+  setSt('Delivery cancelled');
+}
+
+/* Re-anchor origin to current physical position. */
+function markHome() {
+  if (recording || replaying) return;
+  if (cal) {
+    clearInterval(cal.keepAlive);
+    clearTimeout(cal.watchdog);
+    send({cmd:'stop'});
+    cal = null;
+    document.getElementById('calBtn').textContent = '📐 Calibrate';
+  }
+  posX = 0; posY = 0; heading = 0; gyroHeading = 0; lastGzTs = Date.now();
+  setText('px','0'); setText('py','0'); setText('phdg','0.0°'); setText('pdist','0');
+  tripLog = [];
+  setSt('Origin marked at current pose ✓');
+  updateInfo();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Debug panel refresh + controls
+═══════════════════════════════════════════════════════════════════════ */
+var _DN = ['FWD','BWD','LEFT','RIGHT'];
+
+function refreshDebug() {
+  if (dbg.hidden) return;
+  var gi = dbgArrStats(dbg.gyroIntervals);
+  var ai = dbgArrStats(dbg.accelIntervals);
+  var wi = dbgArrStats(dbg.wsIntervals);
+  var ti = dbgArrStats(dbg.timerIntervals);
+
+  /* ── Gyro / Accel / WS rates side-by-side ── */
+  var gyroBad = gi.max > 400 || ai.max > 400 || wi.max > 400;
+  var totalH = 0; for (var k in dbg.gyroHist) totalH += dbg.gyroHist[k];
+  var histLine = '';
+  if (totalH > 0) {
+    histLine = '\nGyro Δt hist:';
+    ['<100','100-200','200-300','300-500','500-1000','>=1000'].forEach(function(k) {
+      var n = dbg.gyroHist[k];
+      var pct = totalH ? (n*100/totalH).toFixed(0) : '0';
+      histLine += '  ' + k + 'ms=' + n + '(' + pct + '%)';
+    });
+  }
+  var gyroLine =
+    'GYRO   total=' + dbg.gyroPktCount + '  rate=' + dbg.gyroRate.toFixed(1) + '/s' +
+    '  Δt  last=' + gi.last + '  avg=' + gi.avg.toFixed(0) + '  max=' + gi.max + ' (n=' + gi.n + ')\n' +
+    'ACCEL  total=' + dbg.accelPktCount + '  rate=' + dbg.accelRate.toFixed(1) + '/s' +
+    '  Δt  last=' + ai.last + '  avg=' + ai.avg.toFixed(0) + '  max=' + ai.max + ' (n=' + ai.n + ')\n' +
+    'WS-any total=' + dbg.wsPktCount +
+    '  Δt  last=' + wi.last + '  avg=' + wi.avg.toFixed(0) + '  max=' + wi.max + ' (n=' + wi.n + ')' +
+    histLine +
+    (gyroBad ? '\n⚠ LARGE PACKET GAP (≥0.4s) — see gap log below for context' : '');
+  var gyroEl = document.getElementById('dbg-gyro');
+  gyroEl.textContent = gyroLine;
+  gyroEl.className = 'dbg-row' + (gyroBad ? ' W' : '');
+
+  /* ── Main-thread blocking ── */
+  var blockEl = document.getElementById('dbg-block');
+  if (blockEl) {
+    var blockBad = dbg.blockEvents > 0;
+    blockEl.textContent = 'Main thread blocks (>100ms late): ' + dbg.blockEvents +
+      '   max-late=' + dbg.maxBlockMs + 'ms' +
+      (blockBad ? '\n⚠ JS event loop stalled — GC, screen-off, or background tab' : '');
+    blockEl.className = 'dbg-row' + (blockBad ? ' W' : '');
+  }
+
+  /* ── Gap log ── */
+  var gapEl = document.getElementById('dbg-gaps');
+  if (gapEl) {
+    if (dbg.gapLog.length === 0) gapEl.textContent = '(no gaps ≥400ms — IMU stream healthy)';
+    else gapEl.textContent = dbg.gapLog.slice().reverse().slice(0, 12).map(function(g) {
+      return '⚠ [' + g.ts + ']  ' + g.type + '  ' + g.gapMs + 'ms' +
+        '  (last move ' + (g.sinceLastMove < 0 ? 'never' : g.sinceLastMove + 'ms ago') + ')';
+    }).join('\n');
+    gapEl.className = 'dbg-row' + (dbg.gapLog.length > 0 ? ' W' : '');
+  }
+
+  /* ── Timer jitter ── */
+  var timerBad = ti.max > INTERVAL * 1.5;
+  var timerLine = ti.n === 0 ? '(no data — press a direction button first)' :
+    'Target=' + INTERVAL + 'ms   last=' + ti.last.toFixed(0) +
+    'ms  avg=' + ti.avg.toFixed(0) +
+    'ms  min=' + ti.min.toFixed(0) +
+    'ms  max=' + ti.max.toFixed(0) +
+    'ms  (n=' + ti.n + ')' +
+    (timerBad ? '\n⚠ HIGH JITTER — tab running in background? JS event loop busy?' : '');
+  var timerEl = document.getElementById('dbg-timer');
+  timerEl.textContent = timerLine;
+  timerEl.className = 'dbg-row' + (timerBad ? ' W' : '');
+
+  /* ── Calibration ── */
+  var calLine = 'pivotDpm: ' + PIVOT_DEG_PER_MS.toFixed(5) + ' \u00b0/ms' +
+    '  (' + Math.round(1000 / PIVOT_DEG_PER_MS) + 'ms/360\u00b0' +
+    '  ' + (90 / PIVOT_DEG_PER_MS).toFixed(0) + 'ms/90\u00b0)';
+  if (dbg.calResult) {
+    calLine += '\nLast run:  elapsed=' + dbg.calResult.elapsed + 'ms' +
+      '  acc=' + dbg.calResult.accumDeg + '\u00b0' +
+      '  gyro-pkts=' + dbg.calResult.nPkts +
+      '  avgGz=' + dbg.calResult.avgGzRaw + '\u00b0/s' +
+      '  pivotDpm=' + dbg.calResult.pivotDpm;
+    if (dbg.calResult.samples && dbg.calResult.samples.length) {
+      calLine += '\nPkt-by-pkt  [gz \u00b0/s | dt ms | accum \u00b0]:';
+      dbg.calResult.samples.forEach(function(s, i) {
+        calLine += '\n  #' + (i+1) + '  gz=' + s.gz_raw + '  dt=' + s.dt_ms + 'ms  \u2192acc=' + s.acc + '\u00b0';
+      });
+    }
+  } else {
+    calLine += '\n(no calibration run yet this session)';
+  }
+  document.getElementById('dbg-cal').textContent = calLine;
+
+  /* ── Replay segment timing ── */
+  var anyLag = dbg.replayLog.some(function(s) { return s.lag > 50; });
+  var repLine = dbg.replayLog.length === 0 ? '(no replay yet)' :
+    dbg.replayLog.slice(-14).map(function(s) {
+      return (s.lag > 50 ? '\u26a0 ' : '\u2713 ') +
+        _DN[s.dir] + '  cmd=' + s.cmdMs + 'ms  actual=' + s.actualMs + 'ms  lag=+' + s.lag + 'ms';
+    }).join('\n');
+  var repEl = document.getElementById('dbg-replay');
+  repEl.textContent = repLine;
+  repEl.className = 'dbg-row' + (anyLag ? ' W' : '');
+
+  /* ── Obstacle / Emergency-stop log ── */
+  var obsEl = document.getElementById('dbg-obstacle');
+  if (obsEl) {
+    if (dbg.obstacleLog.length === 0) {
+      obsEl.textContent = 'No obstacle events yet.';
+      obsEl.className = 'dbg-row';
+    } else {
+      var active = obstacleActive ? ' \u26d4 ACTIVE\n' : ' \u2705 CLEAR\n';
+      var state  = 'pendingOdoCb=' + (!!pendingOdoCb) +
+                   '  wdgArmed=' + (!!_scWdg) +
+                   '  restartFn=' + (!!_scWdgRestart) +
+                   '  replay=' + _replayI + '/' + _replayN + '\n';
+      obsEl.textContent = active + state +
+        dbg.obstacleLog.slice().reverse().map(function(e) {
+          return '[' + e.ts + '] ' + e.event +
+                 '  replay=' + e.replay +
+                 '  pendingCb=' + e.pendingCb +
+                 '  wdg=' + e.wdgArmed +
+                 '  restartFn=' + e.restartFn +
+                 '  odoSeq=' + e.odoSeq +
+                 (e.extra ? '  ' + e.extra : '');
+        }).join('\n');
+      obsEl.className = 'dbg-row' + (obstacleActive ? ' E' : '');
+    }
+  }
+
+  /* ── Event log ── */
+  var logEl = document.getElementById('dbg-log');
+  logEl.innerHTML = dbg.events.slice().reverse().slice(0, 60).map(function(ev) {
+    return '<span class="' + ev.cls + '">[' + ev.ts + '] <b>' +
+      ev.tag + '</b> ' + (ev.detail || '').replace(/</g, '&lt;') + '</span>';
+  }).join('<br>');
+}
+
+function clearDbgLog() {
+  dbg.events = []; dbg.timerIntervals = []; dbg.gyroIntervals = [];
+  dbg.accelIntervals = []; dbg.wsIntervals = [];
+  dbg.replayLog = []; dbg.calResult = null; dbg.calSamples = [];
+  dbg.gapLog = []; dbg.txLog = []; dbg.txSeq = 0;
+  dbg.gyroHist = { '<100':0, '100-200':0, '200-300':0, '300-500':0, '500-1000':0, '>=1000':0 };
+  dbg.t0 = Date.now();
+  dbg.gyroPktCount = 0; dbg.accelPktCount = 0; dbg.wsPktCount = 0;
+  dbg.gyroRateTs = Date.now(); dbg.gyroRateCount = 0; dbg.gyroRate = 0;
+  dbg.accelRateTs = Date.now(); dbg.accelRateCount = 0; dbg.accelRate = 0;
+  dbg.timerFireTs = 0; dbg.gyroPktTs = 0; dbg.accelPktTs = 0; dbg.wsPktTs = 0;
+  dbg.obstacleLog = [];
+  dbg.maxBlockMs = 0; dbg.blockEvents = 0; dbg.watchdogPrevTs = Date.now();
+  refreshDebug();
+}
+
+function copyDbgAll() {
+  /* Refresh first so the panel reflects current state */
+  refreshDebug();
+  var sections = [
+    ['IMU / WebSocket throughput', 'dbg-gyro'],
+    ['Main-thread blocking',       'dbg-block'],
+    ['Recent gaps ≥400ms',         'dbg-gaps'],
+    ['setInterval jitter',         'dbg-timer'],
+    ['Calibration',                'dbg-cal'],
+    ['Replay segment timing',      'dbg-replay'],
+    ['Obstacle / Emergency log',    'dbg-obstacle']
+  ];
+  var lines = [];
+  lines.push('=== ROBOT DEBUG SNAPSHOT ===');
+  lines.push('time: ' + new Date().toISOString());
+  lines.push('uptime: ' + ((Date.now() - dbg.t0) / 1000).toFixed(1) + 's');
+  lines.push('pivotDpm: ' + PIVOT_DEG_PER_MS.toFixed(5) + ' °/ms');
+  lines.push('crawlStepsPerMs: ' + CRAWL_STEPS_PER_MS);
+  lines.push('keepAliveInterval: ' + INTERVAL + 'ms');
+  lines.push('biasGz: ' + (bias.gz/10).toFixed(2) + '°/s  samples=' + bias.samples);
+  lines.push('pose: x=' + posX.toFixed(0) + ' y=' + posY.toFixed(0) +
+             ' heading=' + heading.toFixed(1) + '°  gyroHeading=' + gyroHeading.toFixed(1) + '°');
+  lines.push('tripLog: ' + tripLog.length + ' segments  recording=' + recording + '  replaying=' + replaying);
+  lines.push('obstacle: active=' + obstacleActive + '  pendingOdoCb=' + (!!pendingOdoCb) +
+             '  wdgArmed=' + (!!_scWdg) + '  restartFn=' + (!!_scWdgRestart) +
+             '  replay=' + _replayI + '/' + _replayN);
+  lines.push('');
+  sections.forEach(function(pair) {
+    var el = document.getElementById(pair[1]);
+    lines.push('--- ' + pair[0] + ' ---');
+    lines.push(el ? el.textContent : '(missing)');
+    lines.push('');
+  });
+  lines.push('--- Event log (newest first) ---');
+  dbg.events.slice().reverse().forEach(function(ev) {
+    lines.push('[' + ev.ts + '] ' + ev.tag + (ev.cls ? '(' + ev.cls + ')' : '') +
+               (ev.detail ? '  ' + ev.detail : ''));
+  });
+  var txt = lines.join('\n');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(
+      function() { setSt('Full debug copied (' + txt.length + ' chars) ✓'); },
+      function() { _fallbackCopy(txt); }
+    );
+  } else {
+    _fallbackCopy(txt);
+  }
+}
+function _fallbackCopy(txt) {
+  var ta = document.createElement('textarea');
+  ta.value = txt; ta.style.position='fixed'; ta.style.top='0'; ta.style.left='0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); setSt('Full debug copied (' + txt.length + ' chars) ✓'); }
+  catch(e) { setSt('Copy failed — see console'); console.log(txt); }
+  document.body.removeChild(ta);
+}
+
+function copyDbgLog() {
+  var gi = dbgArrStats(dbg.gyroIntervals);
+  var ai = dbgArrStats(dbg.accelIntervals);
+  var wi = dbgArrStats(dbg.wsIntervals);
+  var ti = dbgArrStats(dbg.timerIntervals);
+  var data = {
+    timestamp: new Date().toISOString(),
+    pivotDpm: PIVOT_DEG_PER_MS,
+    crawlStepsPerMs: CRAWL_STEPS_PER_MS,
+    keepAliveInterval_ms: INTERVAL,
+    counts: { gyro:dbg.gyroPktCount, accel:dbg.accelPktCount, wsAny:dbg.wsPktCount },
+    gyroInterval_ms:  { last:gi.last, avg:+gi.avg.toFixed(1), min:gi.min, max:gi.max, n:gi.n, rate:dbg.gyroRate },
+    accelInterval_ms: { last:ai.last, avg:+ai.avg.toFixed(1), min:ai.min, max:ai.max, n:ai.n, rate:dbg.accelRate },
+    wsAnyInterval_ms: { last:wi.last, avg:+wi.avg.toFixed(1), min:wi.min, max:wi.max, n:wi.n },
+    timerJitter_ms:   { target:INTERVAL, last:ti.last, avg:+ti.avg.toFixed(1), min:ti.min, max:ti.max, n:ti.n },
+    gyroHistogram: dbg.gyroHist,
+    mainThreadBlocks: { count:dbg.blockEvents, maxLateMs:dbg.maxBlockMs },
+    gapLog: dbg.gapLog,
+    calResult: dbg.calResult,
+    replayLog: dbg.replayLog,
+    obstacleLog: dbg.obstacleLog,
+    events: dbg.events
+  };
+  var txt = JSON.stringify(data, null, 2);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(function() { setSt('Debug log copied \u2713'); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    setSt('Debug log copied \u2713');
+  }
+}
+
+function toggleDbg() {
+  dbg.hidden = !dbg.hidden;
+  document.getElementById('dbgBody').style.display = dbg.hidden ? 'none' : '';
+  document.getElementById('dbgToggleBtn').textContent = dbg.hidden ? 'Show' : 'Hide';
+}
+
+/* ─── boot ─── */
+loadBias();
+loadRoutes();
+loadGraph();
+rebuildGraphUI();
+/* BLE requires a user gesture to call requestDevice() — tap the status bar */
+setSt('Tap the status bar to connect BLE');
+setInterval(refreshDebug, 500);
+
+/* ── PWA service worker ── */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(function(e) {
+    console.warn('SW register failed:', e);
+  });
+}
+
+/* ── Wake Lock: keep screen + CPU alive while page is open ──────────── */
+var _wakeLock = null;
+function acquireWakeLock() {
+  if (!('wakeLock' in navigator)) {
+    dbgEvent('wakeLock', 'API not supported — screen may sleep and block JS!', 'W');
+    return;
+  }
+  navigator.wakeLock.request('screen').then(function(lock) {
+    _wakeLock = lock;
+    dbgEvent('wakeLock', 'acquired ✓ — screen will stay on', 'G');
+    lock.addEventListener('release', function() {
+      dbgEvent('wakeLock', 'RELEASED by OS — re-acquiring…', 'W');
+      _wakeLock = null;
+      /* Re-acquire once the page becomes visible again */
+    });
+  }).catch(function(e) {
+    dbgEvent('wakeLock', 'FAILED: ' + e.message + ' — use "Keep screen on" in browser settings', 'W');
+  });
+}
+acquireWakeLock();
+
+/* Re-acquire after tab comes back to foreground */
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') {
+    dbgEvent('visibility', 'tab VISIBLE — re-acquiring wake lock', 'G');
+    document.getElementById('wakebanner').style.display = 'none';
+    setSt('⚠ Tab was hidden — motion commands may have missed. Re-acquiring wake lock.');
+    acquireWakeLock();
+  } else {
+    dbgEvent('visibility', 'tab HIDDEN — JS will be throttled! Move commands may fail!', 'E');
+    setSt('⚠ WARNING: Tab is hidden — keep this tab in foreground during operation!');
+    document.getElementById('wakebanner').style.display = 'block';
+    if (replaying) {
+      setSt('⚠ CRITICAL: Tab hidden during replay — stopping for safety!');
+      replaying = false;
+      stopMove();
+      setReplayBtn(false);
+    }
+  }
+});
+</script>
+</body>
+</html>
